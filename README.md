@@ -1,4 +1,4 @@
-# ✂️ SalonQ – Aplikasi Booking Salon & Barbershop
+# ✂️ ChaaLon – Aplikasi Booking Salon & Barbershop
 
 Aplikasi booking salon/barbershop berbasis **Vue 3 + Supabase** dengan tampilan mobile-first.
 
