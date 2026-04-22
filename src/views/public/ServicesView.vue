@@ -7,9 +7,10 @@
     <div class="flex gap-2 overflow-x-auto pb-2 mb-5 no-scrollbar">
       <button v-for="cat in categories" :key="cat.value"
         @click="activeCategory = cat.value"
-        class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
+        class="flex-shrink-0 flex items-center px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
         :class="activeCategory === cat.value ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600'">
-        {{ cat.emoji }} {{ cat.label }}
+        <img :src="cat.icon" class="w-5 h-5 object-contain" />
+        <span>{{ cat.label }}</span>
       </button>
     </div>
 
@@ -46,11 +47,11 @@ const servicesStore = useServicesStore()
 const activeCategory = ref('all')
 
 const categories = [
-  { value: 'all', label: 'Semua', emoji: '🌟' },
-  { value: 'rambut', label: 'Rambut', emoji: '💇' },
-  { value: 'barbershop', label: 'Barbershop', emoji: '🪒' },
-  { value: 'wajah', label: 'Wajah', emoji: '🧖' },
-  { value: 'kuku', label: 'Kuku', emoji: '💅' },
+  { value: 'all', label: 'Semua', icon: '🌟' },
+  { value: 'rambut', label: 'Rambut', icon: '/icons/Rambut.png' },
+  { value: 'barbershop', label: 'Barbershop', icon: '/icons/Barbershop.png' },
+  { value: 'wajah', label: 'Wajah', icon: '/icons/Wajah.png' },
+  { value: 'kuku', label: 'Kuku', icon: '/icons/Kuku.png' },
 ]
 
 const filteredServices = computed(() => {
