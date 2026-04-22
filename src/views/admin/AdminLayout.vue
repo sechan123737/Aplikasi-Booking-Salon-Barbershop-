@@ -64,6 +64,7 @@
           </router-link>
         </nav>
         <div class="p-4 border-t border-gray-800">
+          <router-link to="/" class="block text-center text-xs text-gray-500 hover:text-gray-300 mb-1">← Lihat Toko</router-link>
           <button @click="logout" class="w-full text-center text-sm text-red-400">Keluar</button>
         </div>
       </aside>
