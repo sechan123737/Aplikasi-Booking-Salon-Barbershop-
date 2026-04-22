@@ -47,7 +47,7 @@ const servicesStore = useServicesStore()
 const activeCategory = ref('all')
 
 const categories = [
-  { value: 'all', label: 'Semua', icon: '🌟' },
+  { value: 'all', label: 'Semua', icon: '/icons/Semua.png' },
   { value: 'rambut', label: 'Rambut', icon: '/icons/Rambut.png' },
   { value: 'barbershop', label: 'Barbershop', icon: '/icons/Barbershop.png' },
   { value: 'wajah', label: 'Wajah', icon: '/icons/Wajah.png' },
