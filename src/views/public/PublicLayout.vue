@@ -58,7 +58,7 @@
       <div class="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
         <router-link to="/" class="flex items-center gap-2">
           <span class="text-2xl">✂️</span>
-          <span class="font-bold text-gray-900 text-lg">ChaLon</span>
+          <span class="font-bold text-gray-900 text-lg">ChaaLon</span>
         </router-link>
         <div class="flex items-center gap-3">
           <router-link v-if="authStore.isLoggedIn" to="/notifications" class="relative p-1">
