@@ -32,7 +32,7 @@
           <div class="space-y-2">
             <div class="flex justify-between text-sm">
               <span class="text-gray-400">Layanan</span>
-              <span class="text-white font-medium">{{ booking.services?.name }}</span>
+              <span class="text-white font-medium">{{ booking.booking_services?.length > 0 ? booking.booking_services.map(bs => bs.services?.name).join(', ') : booking.services?.name }}</span>
             </div>
             <div class="flex justify-between text-sm">
               <span class="text-gray-400">Stylist</span>
@@ -46,9 +46,30 @@
               <span class="text-gray-400">Jam</span>
               <span class="text-white">{{ booking.booking_time?.slice(0,5) }} – {{ booking.end_time?.slice(0,5) }}</span>
             </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-400">Harga</span>
-              <span class="text-amber-400 font-bold">Rp {{ formatPrice(booking.service_price) }}</span>
+            <!-- Subtotal per layanan -->
+            <div v-if="booking.booking_services && booking.booking_services.length > 0"
+              class="space-y-1 mb-1">
+              <div v-for="bs in booking.booking_services" :key="bs.id"
+                class="flex justify-between text-sm">
+                <span class="text-gray-400">{{ bs.services?.name }}</span>
+                <span class="text-gray-300">Rp {{ formatPrice(bs.price) }}</span>
+              </div>
+            </div>
+            <!-- Diskon -->
+            <div v-if="booking.discount_amount > 0" class="flex justify-between text-sm">
+              <span class="text-green-400">Diskon ({{ booking.voucher_code }})</span>
+              <span class="text-green-400">- Rp {{ formatPrice(booking.discount_amount) }}</span>
+            </div>
+            <!-- Total -->
+            <div class="flex justify-between text-sm border-t border-gray-700 pt-2 mt-1">
+              <span class="text-gray-400">Total Bayar</span>
+              <span class="text-amber-400 font-bold">Rp {{ formatPrice(
+                booking.final_price > 0
+                  ? booking.final_price
+                  : booking.booking_services && booking.booking_services.length > 0
+                    ? booking.booking_services.reduce((sum, bs) => sum + Number(bs.price || 0), 0) - Number(booking.discount_amount || 0)
+                    : booking.service_price || 0
+              ) }}</span>
             </div>
           </div>
         </div>

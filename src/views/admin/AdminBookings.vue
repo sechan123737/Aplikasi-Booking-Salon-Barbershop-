@@ -67,7 +67,7 @@
             </div>
             <div class="flex gap-2 text-sm">
               <span class="text-gray-500 w-20 flex-shrink-0">Layanan</span>
-              <span class="text-gray-300">{{ b.services?.name }}</span>
+              <span class="text-gray-300">{{ b.booking_services?.length > 1 ? b.booking_services.map(bs => bs.services?.name).join(', ') : b.services?.name }}</span>
             </div>
             <div class="flex gap-2 text-sm">
               <span class="text-gray-500 w-20 flex-shrink-0">Stylist</span>
@@ -127,7 +127,7 @@
                   <p class="text-gray-400 text-xs">{{ b.customer_phone }}</p>
                 </td>
                 <td class="px-5 py-4">
-                  <p class="text-gray-300 text-sm">{{ b.services?.name }}</p>
+                  <p class="text-gray-300 text-sm">{{ b.booking_services?.length > 1 ? b.booking_services.map(bs => bs.services?.name).join(', ') : b.services?.name }}</p>
                   <p class="text-gray-500 text-xs">{{ b.staff?.name || 'Siapa saja' }}</p>
                 </td>
                 <td class="px-5 py-4">

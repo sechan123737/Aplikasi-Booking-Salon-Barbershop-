@@ -12,7 +12,7 @@ export const useBookingStore = defineStore('booking', () => {
     loading.value = true
     const { data, error } = await supabase
       .from('bookings')
-      .select(`*, services(*), staff(*), reviews(*)`)
+      .select(`*, services(*), staff(*), reviews(*), booking_services(*, services(*))`)
       .eq('user_id', userId)
       .order('booking_date', { ascending: false })
       .order('booking_time', { ascending: false })
@@ -23,12 +23,33 @@ export const useBookingStore = defineStore('booking', () => {
   }
 
   async function createBooking(payload) {
+    // Pisahkan service_ids dari payload utama
+    // Pisahkan field yang tidak ada di tabel bookings
+    const { service_ids, services_price, service_price, ...bookingPayload } = payload
+
+    // service_id (kolom lama) tetap diisi dengan yang pertama
+    bookingPayload.service_id = service_ids?.[0] || null
+
     const { data, error } = await supabase
       .from('bookings')
-      .insert(payload)
+      .insert(bookingPayload)
       .select(`*, services(*), staff(*)`)
       .single()
     if (error) throw error
+
+    // Insert semua layanan ke booking_services
+    if (service_ids && service_ids.length > 0) {
+      const bsRows = service_ids.map(sid => ({
+        booking_id: data.id,
+        service_id: sid,
+        price: services_price?.[sid] || 0,
+      }))
+      const { error: bsError } = await supabase
+        .from('booking_services')
+        .insert(bsRows)
+      if (bsError) console.error('booking_services insert error:', bsError)
+    }
+
     return data
   }
 
@@ -61,7 +82,7 @@ export const useBookingStore = defineStore('booking', () => {
     loading.value = true
     let query = supabase
       .from('bookings')
-      .select(`*, services(*), staff(*), profiles(*)`)
+      .select(`*, services(*), staff(*), profiles(*), booking_services(*, services(*))`)
       .order('booking_date', { ascending: false })
       .order('booking_time', { ascending: false })
 
@@ -103,10 +124,12 @@ export const useBookingStore = defineStore('booking', () => {
   }
 
   async function deleteBooking(bookingId) {
+    // Hanya boleh hapus booking yang sudah dibatalkan
     const { error } = await supabase
       .from('bookings')
       .delete()
       .eq('id', bookingId)
+      .eq('status', 'cancelled')
     if (error) throw error
     bookings.value = bookings.value.filter(b => b.id !== bookingId)
   }

@@ -18,7 +18,7 @@
       <!-- Desktop Nav Links -->
       <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         <router-link
-          v-for="item in desktopNavItems" :key="item.to" :to="item.to"
+          v-for="item in navItems" :key="item.to" :to="item.to"
           class="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all group"
           :class="isActive(item) ? 'bg-amber-500 text-white shadow-md shadow-amber-200' : 'text-gray-600 hover:bg-amber-50 hover:text-amber-700'">
           <img :src="item.icon" class="w-6 h-6 object-contain" :class="isActive(item) ? 'brightness-200' : ''" />
@@ -120,22 +120,12 @@ const navItems = computed(() => {
   ]
   if (authStore.isLoggedIn) {
     base.push({ to: '/history', icon: '/Riwayat.png', label: 'Riwayat' })
+    base.push({ to: '/notifications', icon: '/Beranda.png', label: 'Notifikasi', hideOnMobile: true })
     base.push({ to: '/profile', icon: '/Profil.png', label: 'Profil' })
   } else {
     base.push({ to: '/login', icon: '/Profil.png', label: 'Masuk' })
   }
-  return base
-})
-
-// Desktop sidebar punya item tambahan: Notifikasi
-const desktopNavItems = computed(() => {
-  const items = [...navItems.value]
-  if (authStore.isLoggedIn) {
-    // Sisipkan Notifikasi sebelum Profil
-    const profileIdx = items.findIndex(i => i.to === '/profile' || i.to === '/login')
-    items.splice(profileIdx, 0, { to: '/notifications', icon: '/Notif.png', label: 'Notifikasi' })
-  }
-  return items
+  return base.filter(item => !item.hideOnMobile)
 })
 
 function isActive(item) {

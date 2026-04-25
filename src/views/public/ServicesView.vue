@@ -66,9 +66,9 @@ function getCategoryIcon(cat) {
     wajah:      '/icons/Wajah.png',
     kuku:       '/icons/Kuku.png',
     barbershop: '/icons/Barbershop.png',
-    general:    '/Layanan.png',
+    general:    '/Layanan.png.png',
   }
-  return map[cat] || '/Layanan.png'
+  return map[cat] || '/Layanan.png.png'
 }
 
 onMounted(() => servicesStore.fetchServices())

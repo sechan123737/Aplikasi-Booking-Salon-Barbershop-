@@ -18,16 +18,16 @@
       </div>
     </div>
 
-    <!-- ─── STEP 1: Pilih Layanan (multi-select) ──────────────── -->
+    <!-- Step 1: Pilih Layanan (multi-select) -->
     <div v-if="currentStep === 0">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-semibold text-gray-800">Pilih Layanan</h2>
-        <span v-if="selectedServices.length" class="text-xs bg-amber-500 text-white rounded-full px-2.5 py-1 font-semibold">
+        <span v-if="selectedServices.length > 0"
+          class="text-xs bg-amber-100 text-amber-700 font-semibold px-2.5 py-1 rounded-full">
           {{ selectedServices.length }} dipilih
         </span>
       </div>
-      <p class="text-xs text-gray-400 mb-4">Kamu bisa memilih lebih dari satu layanan sekaligus ✨</p>
-
+      <p class="text-xs text-gray-400 mb-3">Bisa pilih lebih dari satu layanan</p>
       <div v-if="servicesStore.loading" class="space-y-3">
         <div v-for="i in 4" :key="i" class="h-20 bg-gray-100 rounded-2xl animate-pulse"></div>
       </div>
@@ -35,76 +35,80 @@
         <div v-for="svc in servicesStore.services" :key="svc.id"
           @click="toggleService(svc)"
           class="flex items-center gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all"
-          :class="isSelected(svc.id) ? 'border-amber-500 bg-amber-50' : 'border-gray-100 bg-white hover:border-amber-200'">
-          <!-- Checkbox visual -->
-          <div class="w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors"
-            :class="isSelected(svc.id) ? 'bg-amber-500 border-amber-500' : 'border-gray-300'">
-            <span v-if="isSelected(svc.id)" class="text-white text-xs font-bold">✓</span>
-          </div>
-          <img :src="getCategoryIcon(svc.category)" class="w-8 h-8 object-contain flex-shrink-0" />
-          <div class="flex-1 min-w-0">
+          :class="isServiceSelected(svc.id) ? 'border-amber-500 bg-amber-50' : 'border-gray-100 bg-white hover:border-amber-200'">
+          <img :src="getCategoryIcon(svc.category)" class="w-8 h-8 object-contain" />
+          <div class="flex-1">
             <p class="font-semibold text-gray-800">{{ svc.name }}</p>
             <p class="text-xs text-gray-500">{{ svc.duration_minutes }} menit</p>
-            <p v-if="svc.description" class="text-xs text-gray-400 mt-0.5 truncate">{{ svc.description }}</p>
+            <p v-if="svc.description" class="text-xs text-gray-400 mt-0.5">{{ svc.description }}</p>
           </div>
-          <p class="font-bold text-amber-600 flex-shrink-0">Rp {{ formatPrice(svc.price) }}</p>
+          <div class="flex items-center gap-3">
+            <p class="font-bold text-amber-600">Rp {{ formatPrice(svc.price) }}</p>
+            <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0"
+              :class="isServiceSelected(svc.id) ? 'bg-amber-500 border-amber-500 text-white' : 'border-gray-300'">
+              <span v-if="isServiceSelected(svc.id)" class="text-xs font-bold">✓</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Ringkasan layanan terpilih -->
-      <div v-if="selectedServices.length" class="mt-4 bg-amber-50 border border-amber-200 rounded-2xl p-4">
-        <p class="text-xs font-semibold text-amber-700 mb-2">Ringkasan Pilihan:</p>
-        <div class="space-y-1 mb-3">
+      <div v-if="selectedServices.length > 0" class="mt-4 bg-amber-50 rounded-2xl p-4 border border-amber-200">
+        <p class="text-xs font-semibold text-amber-700 mb-2">Layanan dipilih:</p>
+        <div class="space-y-1">
           <div v-for="svc in selectedServices" :key="svc.id" class="flex justify-between text-sm">
             <span class="text-gray-700">{{ svc.name }}</span>
-            <span class="text-amber-700 font-medium">Rp {{ formatPrice(svc.price) }}</span>
+            <span class="font-medium text-amber-600">Rp {{ formatPrice(svc.price) }}</span>
           </div>
         </div>
-        <div class="border-t border-amber-200 pt-2 flex justify-between text-sm font-bold">
-          <span class="text-gray-700">Total ({{ totalDuration }} menit)</span>
-          <span class="text-amber-600">Rp {{ formatPrice(totalPrice) }}</span>
+        <div class="border-t border-amber-200 mt-2 pt-2 flex justify-between font-bold text-sm">
+          <span>Total</span>
+          <span class="text-amber-600">Rp {{ formatPrice(totalServicesPrice) }}</span>
+        </div>
+        <div class="text-xs text-gray-400 mt-1">
+          Total durasi: {{ totalDuration }} menit
         </div>
       </div>
 
-      <button @click="nextStep" :disabled="!selectedServices.length"
-        class="w-full mt-5 py-3.5 rounded-2xl font-semibold text-white transition-colors"
-        :class="selectedServices.length ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'">
-        Lanjut → ({{ selectedServices.length }} layanan)
+      <button @click="nextStep" :disabled="selectedServices.length === 0"
+        class="w-full mt-6 py-3.5 rounded-2xl font-semibold text-white transition-colors"
+        :class="selectedServices.length > 0 ? 'bg-amber-500 hover:bg-amber-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'">
+        Lanjut →
       </button>
     </div>
 
-    <!-- ─── STEP 2: Jadwal & Stylist ──────────────────────────── -->
+    <!-- Step 2: Pilih Tanggal & Jam -->
     <div v-if="currentStep === 1">
       <h2 class="font-semibold text-gray-800 mb-3">Pilih Tanggal</h2>
       <input type="date" v-model="form.booking_date" :min="today" :max="maxDate"
         @change="loadSlots"
         class="w-full border-2 border-gray-200 rounded-2xl p-3.5 mb-5 focus:border-amber-500 outline-none text-gray-800" />
 
-      <h2 class="font-semibold text-gray-800 mb-3">Pilih Jam Mulai</h2>
+      <h2 class="font-semibold text-gray-800 mb-3">Pilih Jam</h2>
       <div v-if="loadingSlots" class="grid grid-cols-4 gap-2">
         <div v-for="i in 8" :key="i" class="h-12 bg-gray-100 rounded-xl animate-pulse"></div>
       </div>
-      <div v-else-if="!form.booking_date" class="text-center text-gray-400 py-6 text-sm">Pilih tanggal terlebih dahulu</div>
-      <div v-else-if="availableSlots.length === 0" class="text-center text-gray-400 py-6 text-sm">Tidak ada slot tersedia</div>
+      <div v-else-if="!form.booking_date" class="text-center text-gray-400 py-6 text-sm">
+        Pilih tanggal terlebih dahulu
+      </div>
+      <div v-else-if="availableSlots.length === 0" class="text-center text-gray-400 py-6 text-sm">
+        Tidak ada slot tersedia untuk tanggal ini
+      </div>
       <div v-else class="grid grid-cols-4 gap-2">
         <button v-for="slot in availableSlots" :key="slot.slot_time"
           :disabled="!slot.is_available"
           @click="form.booking_time = slot.slot_time"
           class="py-2.5 rounded-xl text-sm font-semibold transition-all"
-          :class="form.booking_time === slot.slot_time ? 'bg-amber-500 text-white' : slot.is_available ? 'bg-white border-2 border-gray-200 text-gray-700 hover:border-amber-300' : 'bg-gray-100 text-gray-300 cursor-not-allowed'">
+          :class="form.booking_time === slot.slot_time
+            ? 'bg-amber-500 text-white'
+            : slot.is_available
+              ? 'bg-white border-2 border-gray-200 text-gray-700 hover:border-amber-300'
+              : 'bg-gray-100 text-gray-300 cursor-not-allowed'">
           {{ slot.slot_time.slice(0,5) }}
         </button>
       </div>
 
-      <!-- Info total durasi -->
-      <div v-if="form.booking_time" class="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center gap-2">
-        <span class="text-blue-500">⏱</span>
-        <p class="text-xs text-blue-700">
-          Selesai sekitar pukul <strong>{{ estimatedEndTime }}</strong> ({{ totalDuration }} menit total)
-        </p>
-      </div>
-
-      <!-- Pilih Stylist -->
+      <!-- Pilih Staff (opsional) -->
       <div class="mt-6">
         <h2 class="font-semibold text-gray-800 mb-3">Pilih Stylist <span class="text-gray-400 font-normal text-sm">(opsional)</span></h2>
         <div class="grid grid-cols-2 gap-3">
@@ -118,7 +122,9 @@
             @click="form.staff_id = st.id"
             class="flex flex-col items-center p-3 rounded-2xl border-2 cursor-pointer transition-all"
             :class="form.staff_id === st.id ? 'border-amber-500 bg-amber-50' : 'border-gray-100 bg-white'">
-            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-base font-bold text-amber-700 mb-1">{{ st.name[0] }}</div>
+            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-base font-bold text-amber-700 mb-1">
+              {{ st.name[0] }}
+            </div>
             <span class="text-sm font-medium text-gray-700">{{ st.name }}</span>
           </div>
         </div>
@@ -134,7 +140,7 @@
       </div>
     </div>
 
-    <!-- ─── STEP 3: Data Pelanggan ────────────────────────────── -->
+    <!-- Step 3: Data Pelanggan -->
     <div v-if="currentStep === 2">
       <h2 class="font-semibold text-gray-800 mb-3">Data Pelanggan</h2>
       <div class="space-y-4">
@@ -155,10 +161,11 @@
         </div>
         <div>
           <label class="text-sm font-medium text-gray-700 mb-1.5 block">Catatan</label>
-          <textarea v-model="form.notes" rows="2" placeholder="Catatan khusus (opsional)"
+          <textarea v-model="form.notes" rows="3" placeholder="Ada catatan khusus? (opsional)"
             class="w-full border-2 border-gray-200 rounded-2xl p-3.5 focus:border-amber-500 outline-none resize-none"></textarea>
         </div>
       </div>
+
       <div class="flex gap-3 mt-6">
         <button @click="prevStep" class="flex-1 py-3.5 rounded-2xl border-2 border-gray-200 font-semibold text-gray-600">← Kembali</button>
         <button @click="nextStep" :disabled="!form.customer_name || !form.customer_phone"
@@ -169,29 +176,28 @@
       </div>
     </div>
 
-    <!-- ─── STEP 4: Konfirmasi ────────────────────────────────── -->
+    <!-- Step 4: Konfirmasi -->
     <div v-if="currentStep === 3">
       <h2 class="font-semibold text-gray-800 mb-4">Konfirmasi Booking</h2>
-
       <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4">
-        <!-- Header -->
         <div class="bg-amber-500 text-white p-4">
-          <p class="text-amber-100 text-xs mb-1">{{ selectedServices.length }} layanan dipilih</p>
-          <div class="space-y-0.5">
-            <p v-for="svc in selectedServices" :key="svc.id" class="font-semibold">{{ svc.name }}</p>
+          <p class="text-sm text-amber-100 mb-1">Layanan dipilih</p>
+          <div class="space-y-1">
+            <div v-for="svc in selectedServices" :key="svc.id" class="flex justify-between items-center">
+              <p class="font-semibold">{{ svc.name }}</p>
+              <p class="text-amber-100 text-sm">Rp {{ formatPrice(svc.price) }}</p>
+            </div>
           </div>
-          <p class="text-amber-100 text-sm mt-1">Total {{ totalDuration }} menit</p>
+          <p class="text-amber-100 text-xs mt-2">Total durasi: {{ totalDuration }} menit</p>
         </div>
-
-        <!-- Detail -->
         <div class="p-4 space-y-3">
           <div class="flex justify-between text-sm">
             <span class="text-gray-500">Tanggal</span>
-            <span class="font-medium text-right max-w-[60%]">{{ formatDate(form.booking_date) }}</span>
+            <span class="font-medium">{{ formatDate(form.booking_date) }}</span>
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-gray-500">Jam</span>
-            <span class="font-medium">{{ form.booking_time?.slice(0,5) }} – {{ estimatedEndTime }}</span>
+            <span class="font-medium">{{ form.booking_time?.slice(0,5) }}</span>
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-gray-500">Stylist</span>
@@ -206,55 +212,59 @@
             <span class="text-gray-500">HP</span>
             <span class="font-medium">{{ form.customer_phone }}</span>
           </div>
+          <div v-if="form.notes" class="flex justify-between text-sm">
+            <span class="text-gray-500">Catatan</span>
+            <span class="font-medium text-right max-w-[60%]">{{ form.notes }}</span>
+          </div>
+
+          <!-- Ringkasan Harga -->
           <hr class="border-gray-100" />
-
-          <!-- Rincian harga per layanan -->
-          <div class="space-y-1.5">
-            <div v-for="svc in selectedServices" :key="svc.id" class="flex justify-between text-sm">
-              <span class="text-gray-500">{{ svc.name }}</span>
-              <span>Rp {{ formatPrice(svc.price) }}</span>
-            </div>
+          <div v-for="svc in selectedServices" :key="svc.id" class="flex justify-between text-sm">
+            <span class="text-gray-500">{{ svc.name }}</span>
+            <span class="font-medium">Rp {{ formatPrice(svc.price) }}</span>
           </div>
-
-          <!-- Voucher -->
-          <div v-if="!appliedVoucher" class="flex gap-2 pt-1">
-            <input v-model="voucherCode" type="text" placeholder="Kode voucher"
-              @keyup.enter="applyVoucher"
-              class="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-amber-500 outline-none uppercase" />
-            <button @click="applyVoucher" :disabled="checkingVoucher"
-              class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors flex items-center gap-1">
-              <span v-if="checkingVoucher" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-              <span v-else>Pakai</span>
-            </button>
+          <div v-if="appliedVoucher" class="flex justify-between text-sm text-green-600">
+            <span>Diskon ({{ appliedVoucher.code }})</span>
+            <span class="font-semibold">- Rp {{ formatPrice(discountAmount) }}</span>
           </div>
-          <div v-if="appliedVoucher" class="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-            <div class="flex items-center gap-2 text-sm text-green-700">
-              <span>🎟️</span>
-              <span class="font-medium">{{ appliedVoucher.code }} — hemat Rp {{ formatPrice(discountAmount) }}</span>
-            </div>
-            <button @click="removeVoucher" class="text-red-400 text-xs hover:text-red-600">✕</button>
-          </div>
-          <p v-if="voucherError" class="text-sm text-red-500">{{ voucherError }}</p>
-
-          <!-- Total -->
-          <div class="border-t border-gray-100 pt-2 space-y-1">
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-500">Subtotal</span>
-              <span>Rp {{ formatPrice(totalPrice) }}</span>
-            </div>
-            <div v-if="discountAmount" class="flex justify-between text-sm text-green-600">
-              <span>Diskon</span>
-              <span>- Rp {{ formatPrice(discountAmount) }}</span>
-            </div>
-            <div class="flex justify-between font-bold text-sm pt-1">
-              <span>Total Bayar</span>
-              <span class="text-amber-600 text-base">Rp {{ formatPrice(finalPrice) }}</span>
-            </div>
+          <div class="flex justify-between font-bold text-gray-900 pt-1">
+            <span>Total Bayar</span>
+            <span class="text-amber-600">Rp {{ formatPrice(finalPrice) }}</span>
           </div>
         </div>
       </div>
 
-      <div v-if="error" class="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-sm text-red-600">{{ error }}</div>
+      <!-- Input Voucher -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4">
+        <p class="text-sm font-semibold text-gray-700 mb-2">🎟️ Punya Kode Voucher?</p>
+        <div class="flex gap-2">
+          <input v-model="voucherCode" type="text" placeholder="Masukkan kode voucher"
+            :disabled="!!appliedVoucher || checkingVoucher"
+            class="flex-1 border-2 rounded-xl p-3 text-sm font-mono uppercase tracking-widest outline-none transition-colors"
+            :class="appliedVoucher ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 focus:border-amber-500'"
+            @input="voucherCode = voucherCode.toUpperCase().replace(/\s/g,'')"
+            @keyup.enter="applyVoucher" />
+          <button v-if="!appliedVoucher" @click="applyVoucher" :disabled="!voucherCode || checkingVoucher"
+            class="px-4 py-2.5 rounded-xl font-semibold text-sm transition-colors"
+            :class="voucherCode && !checkingVoucher ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-gray-100 text-gray-400 cursor-not-allowed'">
+            <span v-if="checkingVoucher" class="inline-block w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
+            <span v-else>Pakai</span>
+          </button>
+          <button v-else @click="removeVoucher"
+            class="px-4 py-2.5 rounded-xl font-semibold text-sm bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+            Hapus
+          </button>
+        </div>
+        <div v-if="appliedVoucher" class="mt-2 flex items-center gap-2 text-sm text-green-600 font-medium">
+          <span>✅</span>
+          <span>{{ appliedVoucher.name || appliedVoucher.code }} — hemat Rp {{ formatPrice(discountAmount) }}</span>
+        </div>
+        <div v-if="voucherError" class="mt-2 text-sm text-red-500">{{ voucherError }}</div>
+      </div>
+
+      <div v-if="error" class="bg-red-50 border border-red-200 rounded-xl p-3 mb-4 text-sm text-red-600">
+        {{ error }}
+      </div>
 
       <div class="flex gap-3">
         <button @click="prevStep" :disabled="submitting" class="flex-1 py-3.5 rounded-2xl border-2 border-gray-200 font-semibold text-gray-600">← Kembali</button>
@@ -292,60 +302,24 @@ const availableSlots = ref([])
 const submitting = ref(false)
 const error = ref('')
 
-// ── Multi-select layanan ───────────────────────────────────────
-const selectedServiceIds = ref(route.query.service ? [route.query.service] : [])
-
-const selectedServices = computed(() =>
-  servicesStore.services.filter(s => selectedServiceIds.value.includes(s.id))
-)
-
-const totalPrice = computed(() =>
-  selectedServices.value.reduce((sum, s) => sum + Number(s.price), 0)
-)
-
-const totalDuration = computed(() =>
-  selectedServices.value.reduce((sum, s) => sum + Number(s.duration_minutes), 0)
-)
-
-function isSelected(id) {
-  return selectedServiceIds.value.includes(id)
-}
-
-function toggleService(svc) {
-  const idx = selectedServiceIds.value.indexOf(svc.id)
-  if (idx === -1) {
-    selectedServiceIds.value.push(svc.id)
-  } else {
-    selectedServiceIds.value.splice(idx, 1)
-  }
-  removeVoucher()
-}
-
-// ── Perkiraan jam selesai ──────────────────────────────────────
-const estimatedEndTime = computed(() => {
-  if (!form.value.booking_time) return ''
-  const [h, m] = form.value.booking_time.slice(0,5).split(':').map(Number)
-  const totalMin = h * 60 + m + totalDuration.value
-  const endH = Math.floor(totalMin / 60) % 24
-  const endM = totalMin % 60
-  return `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`
-})
-
-// ── Voucher ────────────────────────────────────────────────────
-const voucherCode    = ref('')
-const voucherError   = ref('')
+// ── Voucher state ──────────────────────────────────────────────
+const voucherCode     = ref('')
+const voucherError    = ref('')
 const checkingVoucher = ref(false)
-const appliedVoucher = ref(null)
-const discountAmount = ref(0)
+const appliedVoucher  = ref(null)
+const discountAmount  = ref(0)
 
-const finalPrice = computed(() => Math.max(0, totalPrice.value - discountAmount.value))
+const finalPrice = computed(() => {
+  return Math.max(0, totalServicesPrice.value - discountAmount.value)
+})
 
 async function applyVoucher() {
   if (!voucherCode.value) return
   voucherError.value = ''
   checkingVoucher.value = true
   try {
-    const result = await voucherStore.validateVoucher(voucherCode.value, totalPrice.value)
+    const servicePrice = totalServicesPrice.value
+    const result = await voucherStore.validateVoucher(voucherCode.value, servicePrice)
     appliedVoucher.value = result.voucher
     discountAmount.value = result.discountAmount
   } catch (e) {
@@ -363,12 +337,13 @@ function removeVoucher() {
   voucherCode.value = ''
   voucherError.value = ''
 }
+// ──────────────────────────────────────────────────────────────
 
-// ── Form & Booking ─────────────────────────────────────────────
 const today = new Date().toISOString().split('T')[0]
 const maxDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
 
 const form = ref({
+  service_ids: route.query.service ? [route.query.service] : [],
   booking_date: '',
   booking_time: null,
   staff_id: null,
@@ -378,19 +353,41 @@ const form = ref({
   notes: ''
 })
 
+const selectedServices = computed(() =>
+  servicesStore.services.filter(s => form.value.service_ids.includes(s.id))
+)
 const selectedStaff = computed(() => staffStore.staff.find(s => s.id === form.value.staff_id))
+const totalServicesPrice = computed(() => selectedServices.value.reduce((sum, s) => sum + Number(s.price || 0), 0))
+const totalDuration = computed(() => selectedServices.value.reduce((sum, s) => sum + Number(s.duration_minutes || 0), 0))
 
-function nextStep() { if (currentStep.value < 3) currentStep.value++ }
+function isServiceSelected(id) {
+  return form.value.service_ids.includes(id)
+}
+
+function toggleService(svc) {
+  const idx = form.value.service_ids.indexOf(svc.id)
+  if (idx === -1) {
+    form.value.service_ids.push(svc.id)
+  } else {
+    form.value.service_ids.splice(idx, 1)
+  }
+  // Reset voucher kalau ubah layanan
+  removeVoucher()
+}
+function nextStep() {
+  if (currentStep.value === 0 && form.value.service_ids.length === 0) return
+  if (currentStep.value < 3) currentStep.value++
+}
 function prevStep() { if (currentStep.value > 0) currentStep.value-- }
 
 async function loadSlots() {
-  if (!form.value.booking_date || !selectedServiceIds.value.length) return
+  if (!form.value.booking_date || form.value.service_ids.length === 0) return
   loadingSlots.value = true
   form.value.booking_time = null
   try {
-    // Gunakan layanan pertama untuk cek slot (durasi terpanjang sebagai acuan)
-    const longestSvc = [...selectedServices.value].sort((a,b) => b.duration_minutes - a.duration_minutes)[0]
-    availableSlots.value = await bookingStore.getAvailableSlots(form.value.booking_date, longestSvc.id)
+    // Gunakan layanan pertama untuk kalkulasi slot (durasi terpanjang)
+    const primaryId = form.value.service_ids[0]
+    availableSlots.value = await bookingStore.getAvailableSlots(form.value.booking_date, primaryId)
   } catch (e) {
     console.error(e)
   } finally {
@@ -402,23 +399,23 @@ async function submitBooking() {
   submitting.value = true
   error.value = ''
   try {
-    // Kirim booking pertama dengan layanan pertama, sisanya sebagai notes
-    const primaryService = selectedServices.value[0]
-    const additionalNames = selectedServices.value.slice(1).map(s => s.name).join(', ')
-    const notesWithServices = additionalNames
-      ? `[Layanan tambahan: ${additionalNames}]${form.value.notes ? ' | ' + form.value.notes : ''}`
-      : form.value.notes
+    // Buat map harga per service
+    const servicesPriceMap = {}
+    selectedServices.value.forEach(s => { servicesPriceMap[s.id] = Number(s.price || 0) })
 
     const payload = {
       ...form.value,
-      service_id: primaryService.id,
-      user_id: authStore.user?.id || null,
-      notes: notesWithServices,
-      voucher_code: appliedVoucher.value?.code || null,
+      service_id:      form.value.service_ids[0] || null,  // kolom lama, isi dengan yg pertama
+      service_ids:     form.value.service_ids,
+      services_price:  servicesPriceMap,
+      service_price:   totalServicesPrice.value,
+      user_id:         authStore.user?.id || null,
+      voucher_code:    appliedVoucher.value?.code || null,
       discount_amount: discountAmount.value || 0,
-      final_price: finalPrice.value,
+      final_price:     finalPrice.value,
     }
     const booking = await bookingStore.createBooking(payload)
+    // Increment usage counter voucher jika dipakai
     if (appliedVoucher.value) {
       await voucherStore.incrementVoucherUsage(appliedVoucher.value.id)
     }
@@ -441,12 +438,13 @@ function getCategoryIcon(cat) {
     wajah:      '/icons/Wajah.png',
     kuku:       '/icons/Kuku.png',
     barbershop: '/icons/Barbershop.png',
-    general:    '/Layanan.png',
+    general:    '/Layanan.png.png',
   }
-  return map[cat] || '/Layanan.png'
+  return map[cat] || '/Layanan.png.png'
 }
 
 onMounted(async () => {
   await Promise.all([servicesStore.fetchServices(), staffStore.fetchStaff()])
+  if (form.value.service_ids.length > 0) currentStep.value = 0
 })
 </script>
