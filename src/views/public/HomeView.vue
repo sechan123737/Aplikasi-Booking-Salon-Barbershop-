@@ -177,10 +177,10 @@
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
               <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-700">
-                {{ review.profiles?.full_name?.[0]?.toUpperCase() || '?' }}
+                {{ review.profiles_public?.full_name?.[0]?.toUpperCase() || '?' }}
               </div>
               <div>
-                <p class="text-sm font-medium text-gray-800">{{ review.profiles?.full_name || 'Anonim' }}</p>
+                <p class="text-sm font-medium text-gray-800">{{ review.profiles_public?.full_name || 'Anonim' }}</p>
                 <p class="text-xs text-gray-400">{{ review.services?.name }}</p>
               </div>
             </div>

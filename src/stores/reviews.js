@@ -11,7 +11,7 @@ export const useReviewsStore = defineStore('reviews', () => {
     loading.value = true
     let query = supabase
       .from('reviews')
-      .select(`*, profiles(full_name, avatar_url), services(name), staff(name)`)
+      .select(`*, profiles_public(full_name, avatar_url), services(name), staff(name)`)
       .eq('is_public', true)
       .order('created_at', { ascending: false })
     if (serviceId) query = query.eq('service_id', serviceId)
@@ -26,7 +26,7 @@ export const useReviewsStore = defineStore('reviews', () => {
     loading.value = true
     const { data, error } = await supabase
       .from('reviews')
-      .select(`*, profiles(full_name), services(name), staff(name), bookings(booking_code)`)
+      .select(`*, profiles_public(full_name, avatar_url), services(name), staff(name), bookings(booking_code)`)
       .order('created_at', { ascending: false })
     loading.value = false
     if (error) throw error

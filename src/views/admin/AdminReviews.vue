@@ -36,10 +36,10 @@
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold">
-              {{ r.profiles?.full_name?.[0]?.toUpperCase() || '?' }}
+              {{ r.profiles_public?.full_name?.[0]?.toUpperCase() || '?' }}
             </div>
             <div>
-              <p class="text-white font-medium text-sm">{{ r.profiles?.full_name || 'Anonim' }}</p>
+              <p class="text-white font-medium text-sm">{{ r.profiles_public?.full_name || 'Anonim' }}</p>
               <p class="text-gray-400 text-xs">{{ r.services?.name }} · {{ r.staff?.name || '-' }}</p>
             </div>
           </div>
