@@ -24,6 +24,7 @@ import AdminStaff         from '../views/admin/AdminStaff.vue'
 import AdminReviews       from '../views/admin/AdminReviews.vue'
 import AdminCustomers     from '../views/admin/AdminCustomers.vue'
 import AdminSchedule      from '../views/admin/AdminSchedule.vue'
+import AdminVouchers      from '../views/admin/AdminVouchers.vue'
 
 const routes = [
   // ── PUBLIC ──────────────────────────────────────────────────
@@ -61,6 +62,7 @@ const routes = [
       { path: 'reviews',   name: 'admin-reviews',          component: AdminReviews },
       { path: 'customers', name: 'admin-customers',        component: AdminCustomers },
       { path: 'schedule',  name: 'admin-schedule',         component: AdminSchedule },
+      { path: 'vouchers',  name: 'admin-vouchers',         component: AdminVouchers },
     ]
   },
 

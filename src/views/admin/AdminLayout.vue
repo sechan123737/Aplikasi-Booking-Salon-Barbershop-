@@ -98,6 +98,7 @@ const navItems = [
   { to: '/admin/customers', icon: '👥', label: 'Pelanggan' },
   { to: '/admin/reviews',   icon: '⭐', label: 'Ulasan' },
   { to: '/admin/schedule',  icon: '🕐', label: 'Jadwal Buka' },
+  { to: '/admin/vouchers',   icon: '🎟️', label: 'Voucher' },
 ]
 
 function isActive(to) {
