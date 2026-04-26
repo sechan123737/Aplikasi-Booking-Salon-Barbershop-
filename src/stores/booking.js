@@ -71,7 +71,7 @@ export const useBookingStore = defineStore('booking', () => {
       .rpc('get_available_slots', {
         p_date: date,
         p_service_id: serviceId,
-        p_max_per_slot: 2
+        p_max_per_slot: 20
       })
     if (error) throw error
     return data
@@ -124,12 +124,10 @@ export const useBookingStore = defineStore('booking', () => {
   }
 
   async function deleteBooking(bookingId) {
-    // Hanya boleh hapus booking yang sudah dibatalkan
     const { error } = await supabase
       .from('bookings')
       .delete()
       .eq('id', bookingId)
-      .eq('status', 'cancelled')
     if (error) throw error
     bookings.value = bookings.value.filter(b => b.id !== bookingId)
   }

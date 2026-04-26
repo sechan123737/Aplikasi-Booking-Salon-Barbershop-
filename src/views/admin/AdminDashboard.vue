@@ -55,7 +55,7 @@
         <div v-else class="space-y-3">
           <div v-for="r in recentReviews" :key="r.id" class="p-3 bg-gray-800/50 rounded-xl">
             <div class="flex items-center justify-between mb-1">
-              <p class="text-white text-sm font-medium">{{ r.profiles?.full_name || 'Anonim' }}</p>
+              <p class="text-white text-sm font-medium">{{ r.profiles_public?.full_name || r.profiles?.full_name || 'Anonim' }}</p>
               <div class="flex gap-0.5">
                 <span v-for="i in 5" :key="i" class="text-xs" :class="i <= r.rating ? 'text-amber-400' : 'text-gray-600'">★</span>
               </div>
@@ -91,8 +91,8 @@ const stats = computed(() => {
   const all = bookingStore.bookings
   const today = todayBookings.value
   const pending = all.filter(b => b.status === 'pending').length
-  const revenue = all.filter(b => b.status === 'completed')
-    .reduce((s, b) => s + Number(b.service_price || 0), 0)
+  const revenue = all.filter(b => b.payment_status === 'paid')
+    .reduce((s, b) => s + Number(b.final_price ?? b.service_price ?? 0), 0)
   const avgRating = reviewsStore.reviews.length
     ? (reviewsStore.reviews.reduce((s,r) => s + r.rating, 0) / reviewsStore.reviews.length).toFixed(1)
     : '-'
@@ -100,7 +100,7 @@ const stats = computed(() => {
   return [
     { label: 'Booking Hari Ini', value: today.length, sub: `${today.filter(b=>b.status==='completed').length} selesai`, color: 'text-amber-400' },
     { label: 'Menunggu Konfirmasi', value: pending, sub: 'perlu diproses', color: 'text-yellow-400' },
-    { label: 'Total Pendapatan', value: 'Rp ' + revenue.toLocaleString('id-ID'), sub: 'booking selesai', color: 'text-green-400' },
+    { label: 'Total Pendapatan', value: 'Rp ' + revenue.toLocaleString('id-ID'), sub: 'pembayaran terkonfirmasi', color: 'text-green-400' },
     { label: 'Rating Rata-rata', value: avgRating + ' ⭐', sub: `dari ${reviewsStore.reviews.length} ulasan`, color: 'text-blue-400' },
   ]
 })

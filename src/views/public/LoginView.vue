@@ -5,7 +5,7 @@
     <div class="text-center mb-8">
       <span class="text-5xl block mb-3">✂️</span>
       <h1 class="text-2xl font-bold text-gray-900">Selamat Datang</h1>
-      <p class="text-gray-500 text-sm mt-1">Masuk ke akun SalonQ Anda</p>
+      <p class="text-gray-500 text-sm mt-1">Masuk ke akun ChaaLon Anda</p>
     </div>
 
     <!-- Form -->

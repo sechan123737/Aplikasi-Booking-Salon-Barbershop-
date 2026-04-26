@@ -94,17 +94,33 @@
       <div v-else-if="availableSlots.length === 0" class="text-center text-gray-400 py-6 text-sm">
         Tidak ada slot tersedia untuk tanggal ini
       </div>
+      <!-- Announce slot penuh -->
+      <div v-if="availableSlots.length > 0 && availableSlots.every(s => !s.is_available)"
+        class="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-4">
+        <span class="text-xl">🚫</span>
+        <div>
+          <p class="text-sm font-semibold text-red-600">Semua slot sudah penuh</p>
+          <p class="text-xs text-red-400 mt-0.5">Coba pilih tanggal lain untuk booking</p>
+        </div>
+      </div>
+
       <div v-else class="grid grid-cols-4 gap-2">
         <button v-for="slot in availableSlots" :key="slot.slot_time"
           :disabled="!slot.is_available"
           @click="form.booking_time = slot.slot_time"
-          class="py-2.5 rounded-xl text-sm font-semibold transition-all"
+          class="py-2.5 px-1 rounded-xl text-xs font-semibold transition-all flex flex-col items-center gap-0.5"
           :class="form.booking_time === slot.slot_time
             ? 'bg-amber-500 text-white'
             : slot.is_available
               ? 'bg-white border-2 border-gray-200 text-gray-700 hover:border-amber-300'
               : 'bg-gray-100 text-gray-300 cursor-not-allowed'">
-          {{ slot.slot_time.slice(0,5) }}
+          <span>{{ slot.slot_time.slice(0,5) }}</span>
+          <span v-if="!slot.is_available" class="text-[10px] font-bold text-red-400">Penuh</span>
+          <span v-else-if="slot.available_count <= 5"
+            class="text-[10px]"
+            :class="form.booking_time === slot.slot_time ? 'text-amber-100' : 'text-orange-400'">
+            sisa {{ slot.available_count }}
+          </span>
         </button>
       </div>
 

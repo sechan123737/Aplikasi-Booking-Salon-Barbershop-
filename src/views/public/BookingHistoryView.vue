@@ -43,7 +43,19 @@
               <p class="text-sm text-gray-500">{{ formatDate(b.booking_date) }} · {{ b.booking_time?.slice(0,5) }}</p>
               <p v-if="b.staff" class="text-sm text-gray-500">👤 {{ b.staff?.name }}</p>
             </div>
-            <StatusBadge :status="b.status" />
+            <div class="flex flex-col items-end gap-1">
+              <StatusBadge :status="b.status" />
+              <span v-if="b.payment_status === 'paid'"
+                class="text-xs px-2 py-0.5 bg-green-100 text-green-600 rounded-full font-medium">✅ Lunas</span>
+              <span v-else-if="b.payment_status === 'waiting_verification'"
+                class="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-600 rounded-full font-medium">⏳ Menunggu Verifikasi</span>
+              <span v-else-if="b.payment_status === 'failed'"
+                class="text-xs px-2 py-0.5 bg-red-100 text-red-500 rounded-full font-medium">❌ Ditolak</span>
+              <span v-else-if="b.payment_method === 'cod'"
+                class="text-xs px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full font-medium">🤝 Bayar di Tempat</span>
+              <span v-else-if="b.status !== 'cancelled'"
+                class="text-xs px-2 py-0.5 bg-red-50 text-red-400 rounded-full font-medium">❗ Belum Bayar</span>
+            </div>
           </div>
           <div class="pt-3 border-t border-gray-50">
             <!-- Subtotal layanan -->
@@ -74,6 +86,12 @@
               </p>
             </div>
             <div class="flex gap-2">
+              <router-link
+                v-if="['unpaid', 'failed'].includes(b.payment_status) && b.payment_method !== 'cod' && !['cancelled'].includes(b.status)"
+                :to="{ name: 'booking-success', query: { code: b.booking_code } }"
+                class="text-xs px-3 py-1.5 bg-amber-500 text-white rounded-full font-medium hover:bg-amber-600 transition-colors">
+                💳 {{ b.payment_status === 'failed' ? 'Upload Ulang' : 'Bayar Sekarang' }}
+              </router-link>
               <button v-if="b.status === 'completed' && !b.reviews?.length"
                 @click="$router.push({ name: 'review', params: { bookingId: b.id } })"
                 class="text-xs px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full font-medium">

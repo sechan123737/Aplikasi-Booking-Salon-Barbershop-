@@ -12,21 +12,23 @@
       </div>
       <div v-else class="space-y-3">
         <div v-for="wh in workingHours" :key="wh.day_of_week"
-          class="flex items-center gap-4 p-3 bg-gray-800/50 rounded-xl">
-          <label class="flex items-center gap-2 w-28 cursor-pointer">
-            <input type="checkbox" v-model="wh.is_open" @change="saveHour(wh)" class="accent-amber-500" />
-            <span class="text-sm font-medium" :class="wh.is_open ? 'text-white' : 'text-gray-500'">
-              {{ dayNames[wh.day_of_week] }}
-            </span>
-          </label>
-          <template v-if="wh.is_open">
+          class="p-3 bg-gray-800/50 rounded-xl">
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" v-model="wh.is_open" @change="saveHour(wh)" class="accent-amber-500 w-4 h-4" />
+              <span class="text-sm font-medium" :class="wh.is_open ? 'text-white' : 'text-gray-500'">
+                {{ dayNames[wh.day_of_week] }}
+              </span>
+            </label>
+            <span v-if="!wh.is_open" class="text-gray-500 text-xs italic">Tutup</span>
+          </div>
+          <div v-if="wh.is_open" class="flex items-center gap-2 mt-2 flex-wrap">
             <input type="time" v-model="wh.open_time" @change="saveHour(wh)"
-              class="bg-gray-700 border border-gray-600 text-white rounded-lg px-2 py-1.5 text-sm focus:border-amber-500 outline-none" />
+              class="flex-1 min-w-0 bg-gray-700 border border-gray-600 text-white rounded-lg px-2 py-1.5 text-sm focus:border-amber-500 outline-none" />
             <span class="text-gray-500 text-sm">–</span>
             <input type="time" v-model="wh.close_time" @change="saveHour(wh)"
-              class="bg-gray-700 border border-gray-600 text-white rounded-lg px-2 py-1.5 text-sm focus:border-amber-500 outline-none" />
-          </template>
-          <span v-else class="text-gray-500 text-sm italic">Tutup</span>
+              class="flex-1 min-w-0 bg-gray-700 border border-gray-600 text-white rounded-lg px-2 py-1.5 text-sm focus:border-amber-500 outline-none" />
+          </div>
         </div>
       </div>
     </div>
@@ -38,14 +40,14 @@
       </div>
 
       <!-- Add blocked date -->
-      <div class="flex gap-3 mb-4">
+      <div class="flex flex-col sm:flex-row gap-2 mb-4">
         <input v-model="newBlock.date" type="date" :min="today"
-          class="flex-1 bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm focus:border-amber-500 outline-none" />
+          class="w-full sm:flex-1 bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm focus:border-amber-500 outline-none" />
         <input v-model="newBlock.reason" type="text" placeholder="Alasan (opsional)"
-          class="flex-1 bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm focus:border-amber-500 outline-none" />
+          class="w-full sm:flex-1 bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm focus:border-amber-500 outline-none" />
         <button @click="addBlockedDate"
-          class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-xl transition-colors">
-          Tambah
+          class="w-full sm:w-auto px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl transition-colors">
+          + Tambah
         </button>
       </div>
 

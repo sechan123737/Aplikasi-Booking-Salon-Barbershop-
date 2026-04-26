@@ -7,7 +7,7 @@
       <div class="h-16 flex items-center gap-3 px-6 border-b border-gray-800">
         <span class="text-2xl">✂️</span>
         <div>
-          <p class="font-bold text-white text-sm">SalonQ</p>
+          <p class="font-bold text-white text-sm">ChaaLon</p>
           <p class="text-gray-500 text-xs">Admin Panel</p>
         </div>
       </div>
@@ -42,7 +42,7 @@
     <div class="lg:hidden fixed top-0 inset-x-0 z-50 h-14 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-4">
       <div class="flex items-center gap-2">
         <span class="text-xl">✂️</span>
-        <p class="font-bold text-white">SalonQ Admin</p>
+        <p class="font-bold text-white">ChaaLon Admin</p>
       </div>
       <button @click="mobileMenuOpen = !mobileMenuOpen" class="text-gray-400 text-2xl">☰</button>
     </div>
@@ -53,7 +53,7 @@
       <aside class="relative w-64 bg-gray-900 flex flex-col">
         <div class="h-14 flex items-center gap-2 px-4 border-b border-gray-800">
           <span class="text-xl">✂️</span>
-          <p class="font-bold text-white">SalonQ Admin</p>
+          <p class="font-bold text-white">ChaaLon Admin</p>
         </div>
         <nav class="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
           <router-link v-for="item in navItems" :key="item.to" :to="item.to"

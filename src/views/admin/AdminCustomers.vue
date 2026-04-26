@@ -12,40 +12,74 @@
       <div v-for="i in 5" :key="i" class="h-20 bg-gray-900 rounded-2xl border border-gray-800 animate-pulse"></div>
     </div>
 
-    <div v-else class="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-      <table class="w-full">
-        <thead class="border-b border-gray-800">
-          <tr>
-            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Pelanggan</th>
-            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Booking</th>
-            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Bayar</th>
-            <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Terakhir Booking</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-800">
-          <tr v-for="c in filteredCustomers" :key="c.phone" class="hover:bg-gray-800/50 transition-colors">
-            <td class="px-5 py-4">
-              <p class="text-white font-medium text-sm">{{ c.name }}</p>
-              <p class="text-gray-400 text-xs">{{ c.phone }}</p>
-              <p v-if="c.email" class="text-gray-500 text-xs">{{ c.email }}</p>
-            </td>
-            <td class="px-5 py-4">
-              <span class="text-white font-medium">{{ c.totalBookings }}</span>
-              <span class="text-gray-400 text-xs ml-1">booking</span>
-            </td>
-            <td class="px-5 py-4">
-              <span class="text-amber-400 font-semibold text-sm">Rp {{ formatPrice(c.totalSpent) }}</span>
-            </td>
-            <td class="px-5 py-4">
-              <span class="text-gray-400 text-sm">{{ formatDate(c.lastBooking) }}</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-if="filteredCustomers.length === 0" class="py-12 text-center text-gray-500 text-sm">
-        Tidak ada pelanggan ditemukan
+    <template v-else>
+      <!-- Mobile: card layout -->
+      <div class="block sm:hidden space-y-3">
+        <div v-if="filteredCustomers.length === 0"
+          class="py-12 text-center text-gray-500 text-sm bg-gray-900 rounded-2xl border border-gray-800">
+          Tidak ada pelanggan ditemukan
+        </div>
+        <div v-for="c in filteredCustomers" :key="c.phone"
+          class="bg-gray-900 rounded-2xl border border-gray-800 p-4">
+          <div class="flex items-start justify-between mb-3">
+            <div class="flex-1 min-w-0 pr-2">
+              <p class="text-white font-semibold text-sm">{{ c.name }}</p>
+              <p class="text-gray-400 text-xs mt-0.5">{{ c.phone }}</p>
+              <p v-if="c.email" class="text-gray-500 text-xs truncate">{{ c.email }}</p>
+            </div>
+            <span class="shrink-0 text-xs bg-amber-500/20 text-amber-400 font-semibold px-2 py-1 rounded-lg">
+              {{ c.totalBookings }} booking
+            </span>
+          </div>
+          <div class="flex items-center justify-between pt-3 border-t border-gray-800">
+            <div>
+              <p class="text-[10px] text-gray-500 mb-0.5">Total Bayar</p>
+              <p class="text-amber-400 font-bold text-sm">Rp {{ formatPrice(c.totalSpent) }}</p>
+            </div>
+            <div class="text-right">
+              <p class="text-[10px] text-gray-500 mb-0.5">Terakhir Booking</p>
+              <p class="text-gray-300 text-xs">{{ formatDate(c.lastBooking) }}</p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <!-- Desktop: table layout -->
+      <div class="hidden sm:block bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+        <table class="w-full">
+          <thead class="border-b border-gray-800">
+            <tr>
+              <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Pelanggan</th>
+              <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Booking</th>
+              <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Bayar</th>
+              <th class="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Terakhir Booking</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-800">
+            <tr v-for="c in filteredCustomers" :key="c.phone" class="hover:bg-gray-800/50 transition-colors">
+              <td class="px-5 py-4">
+                <p class="text-white font-medium text-sm">{{ c.name }}</p>
+                <p class="text-gray-400 text-xs">{{ c.phone }}</p>
+                <p v-if="c.email" class="text-gray-500 text-xs">{{ c.email }}</p>
+              </td>
+              <td class="px-5 py-4">
+                <span class="text-white font-medium">{{ c.totalBookings }}</span>
+                <span class="text-gray-400 text-xs ml-1">booking</span>
+              </td>
+              <td class="px-5 py-4">
+                <span class="text-amber-400 font-semibold text-sm">Rp {{ formatPrice(c.totalSpent) }}</span>
+              </td>
+              <td class="px-5 py-4">
+                <span class="text-gray-400 text-sm">{{ formatDate(c.lastBooking) }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="filteredCustomers.length === 0" class="py-12 text-center text-gray-500 text-sm">
+          Tidak ada pelanggan ditemukan
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -69,10 +103,10 @@ async function loadCustomers() {
   loading.value = true
   const { data } = await supabase
     .from('bookings')
-    .select('customer_name, customer_phone, customer_email, service_price, booking_date, status')
+    .select('customer_name, customer_phone, customer_email, final_price, service_price, booking_date, payment_status')
     .order('booking_date', { ascending: false })
 
-  // Aggregate by phone
+  // Aggregate by customer_phone
   const map = {}
   for (const b of data || []) {
     const key = b.customer_phone
@@ -80,7 +114,7 @@ async function loadCustomers() {
       map[key] = { name: b.customer_name, phone: b.customer_phone, email: b.customer_email, totalBookings: 0, totalSpent: 0, lastBooking: b.booking_date }
     }
     map[key].totalBookings++
-    if (b.status === 'completed') map[key].totalSpent += Number(b.service_price || 0)
+    if (b.payment_status === 'paid') map[key].totalSpent += Number(b.final_price ?? b.service_price ?? 0)
     if (b.booking_date > map[key].lastBooking) map[key].lastBooking = b.booking_date
   }
   customers.value = Object.values(map).sort((a,b) => b.totalBookings - a.totalBookings)

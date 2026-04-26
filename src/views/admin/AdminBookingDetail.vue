@@ -98,6 +98,72 @@
         </div>
       </div>
 
+      <!-- Pembayaran -->
+      <div class="bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-5">
+        <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-3">Informasi Pembayaran</h3>
+        <div class="space-y-2">
+          <!-- Metode Pembayaran -->
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-400">Metode Bayar</span>
+            <span class="text-white font-medium">{{ methodLabel(booking.payment_method) }}</span>
+          </div>
+          <!-- Status Pembayaran -->
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-400">Status Bayar</span>
+            <span class="font-medium"
+              :class="{
+                'text-green-400':  booking.payment_status === 'paid',
+                'text-yellow-400': booking.payment_status === 'waiting_verification',
+                'text-red-400':    booking.payment_status === 'failed',
+                'text-gray-400':   !booking.payment_status || booking.payment_status === 'unpaid',
+              }">
+              {{ paymentStatusLabel(booking.payment_status) }}
+            </span>
+          </div>
+          <!-- Waktu Lunas -->
+          <div v-if="booking.paid_at" class="flex justify-between text-sm">
+            <span class="text-gray-400">Dibayar Pada</span>
+            <span class="text-white">{{ formatDateTime(booking.paid_at) }}</span>
+          </div>
+          <!-- Bukti Transfer -->
+          <div v-if="booking.payment_proof" class="mt-3">
+            <p class="text-gray-400 text-xs mb-2">Bukti Pembayaran</p>
+            <a :href="booking.payment_proof" target="_blank">
+              <img :src="booking.payment_proof" alt="Bukti Pembayaran"
+                class="w-full max-w-xs rounded-xl border border-gray-700 object-cover hover:opacity-80 transition-opacity cursor-pointer" />
+            </a>
+          </div>
+        </div>
+
+        <!-- Aksi Konfirmasi / Tolak (hanya jika waiting_verification) -->
+        <div v-if="booking.payment_status === 'waiting_verification'" class="mt-4 pt-4 border-t border-gray-700 flex gap-3">
+          <button @click="handleConfirmPayment" :disabled="verifying"
+            class="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50">
+            {{ verifying ? 'Memproses...' : '✅ Konfirmasi Pembayaran' }}
+          </button>
+          <button @click="handleRejectPayment" :disabled="verifying"
+            class="flex-1 py-2.5 rounded-xl bg-red-600/30 hover:bg-red-600/50 text-red-400 text-sm font-semibold transition-colors disabled:opacity-50 border border-red-500/30">
+            {{ verifying ? '...' : '❌ Tolak' }}
+          </button>
+        </div>
+
+        <!-- COD: belum bayar, tunggu pelanggan datang -->
+        <div v-else-if="booking.payment_method === 'cod' && booking.payment_status === 'unpaid'"
+          class="mt-4 pt-4 border-t border-gray-700">
+          <p class="text-yellow-400 text-sm text-center mb-3">🤝 Pelanggan akan bayar tunai saat datang</p>
+          <button @click="handleMarkCodPaid" :disabled="verifying"
+            class="w-full py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50">
+            {{ verifying ? 'Memproses...' : '💵 Tandai Sudah Bayar (COD)' }}
+          </button>
+        </div>
+
+        <!-- Sudah Lunas -->
+        <div v-else-if="booking.payment_status === 'paid'"
+          class="mt-4 pt-4 border-t border-gray-700 text-center text-green-400 text-sm font-medium">
+          ✅ Pembayaran sudah dikonfirmasi
+        </div>
+      </div>
+
       <!-- Update Status -->
       <div class="bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-5">
         <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-4">Ubah Status</h3>
@@ -120,10 +186,32 @@
       </div>
 
       <!-- Delete -->
-      <button @click="deleteBooking"
+      <button @click="deleteTarget = booking"
         class="w-full py-3 rounded-xl border-2 border-red-500/30 text-red-400 font-medium hover:bg-red-500/10 transition-colors">
         🗑️ Hapus Booking
       </button>
+    </div>
+  </div>
+
+  <!-- Modal Hapus -->
+  <div v-if="deleteTarget" class="fixed inset-0 z-50 flex items-end sm:items-center pb-24 sm:pb-0 justify-center p-4 bg-black/40">
+    <div class="bg-white rounded-3xl w-full max-w-sm shadow-xl p-6">
+      <div class="text-center mb-4">
+        <div class="text-4xl mb-2">🗑️</div>
+        <p class="font-bold text-gray-900 text-lg">Hapus Booking?</p>
+        <p class="text-sm text-gray-500 mt-1">
+          Booking <span class="font-mono font-bold text-gray-700">{{ deleteTarget.booking_code }}</span>
+          atas nama <span class="font-semibold text-gray-700">{{ deleteTarget.customer_name }}</span> akan dihapus permanen.
+        </p>
+      </div>
+      <div class="flex gap-3 mt-5">
+        <button @click="deleteTarget = null" class="flex-1 py-3 rounded-2xl border-2 border-gray-200 font-semibold text-gray-600">Kembali</button>
+        <button @click="doDelete" :disabled="deleting"
+          class="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 font-semibold text-white transition-colors flex items-center justify-center gap-2">
+          <span v-if="deleting" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          {{ deleting ? '...' : 'Ya, Hapus' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -159,7 +247,7 @@ async function loadBooking() {
   loading.value = true
   const { data, error } = await supabase
     .from('bookings')
-    .select(`*, services(*), staff(*), profiles(*), reviews(*)`)
+    .select(`*, services(*), staff(*), profiles(*), reviews(*), booking_services(*, services(*))`)
     .eq('id', route.params.id)
     .single()
   if (!error) {
@@ -182,10 +270,64 @@ async function updateStatus() {
   updating.value = false
 }
 
-async function deleteBooking() {
-  if (!confirm('Hapus booking ini?')) return
-  await bookingStore.deleteBooking(route.params.id)
-  router.push('/admin/bookings')
+const deleteTarget = ref(null)
+const deleting     = ref(false)
+
+async function doDelete() {
+  deleting.value = true
+  try {
+    await bookingStore.deleteBooking(route.params.id)
+    router.push('/admin/bookings')
+  } finally { deleting.value = false; deleteTarget.value = null }
+}
+
+import { usePaymentStore } from '@/stores/payment'
+const paymentStore = usePaymentStore()
+const verifying    = ref(false)
+
+function methodLabel(m) {
+  const map = { bank_transfer: 'Transfer Bank', qris: 'QRIS', gopay: 'GoPay / OVO / Dana', cod: 'Bayar di Tempat' }
+  return map[m] || m || '-'
+}
+
+function paymentStatusLabel(s) {
+  if (s === 'unpaid' && booking.value?.payment_method === 'cod') return 'Bayar di Tempat 🤝'
+  const map = { unpaid: 'Belum Bayar', waiting_verification: 'Menunggu Verifikasi', paid: 'Lunas ✅', failed: 'Ditolak ❌' }
+  return map[s] || '-'
+}
+
+async function handleMarkCodPaid() {
+  if (!confirm('Tandai booking ini sudah dibayar tunai (COD)?')) return
+  verifying.value = true
+  try {
+    await paymentStore.confirmPayment(booking.value.id, booking.value.user_id, booking.value.booking_code)
+    booking.value.payment_status = 'paid'
+    booking.value.status         = 'confirmed'
+    booking.value.paid_at        = new Date().toISOString()
+  } catch (e) { alert(e.message) }
+  finally { verifying.value = false }
+}
+
+async function handleConfirmPayment() {
+  if (!confirm('Konfirmasi pembayaran ini?')) return
+  verifying.value = true
+  try {
+    await paymentStore.confirmPayment(booking.value.id, booking.value.user_id, booking.value.booking_code)
+    booking.value.payment_status = 'paid'
+    booking.value.status         = 'confirmed'
+    booking.value.paid_at        = new Date().toISOString()
+  } catch (e) { alert(e.message) }
+  finally { verifying.value = false }
+}
+
+async function handleRejectPayment() {
+  if (!confirm('Tolak bukti pembayaran ini? User akan diminta upload ulang.')) return
+  verifying.value = true
+  try {
+    await paymentStore.rejectPayment(booking.value.id, booking.value.user_id, booking.value.booking_code)
+    booking.value.payment_status = 'failed'
+  } catch (e) { alert(e.message) }
+  finally { verifying.value = false }
 }
 
 function formatDate(d) {
