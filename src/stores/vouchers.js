@@ -69,11 +69,11 @@ export const useVoucherStore = defineStore('vouchers', () => {
     const raw = data || []
 
     // Filter ketat di sisi client: pastikan quota belum habis
+    const todayStr = new Date().toLocaleDateString('en-CA') // format: YYYY-MM-DD
     activePromos.value = raw.filter(v => {
       if (!v.is_active) return false
-      const today = new Date()
-      if (v.valid_from && new Date(v.valid_from) > today) return false
-      if (v.valid_until && new Date(v.valid_until) < today) return false
+      if (v.valid_from && v.valid_from > todayStr) return false
+      if (v.valid_until && v.valid_until < todayStr) return false
       if (v.max_uses !== null && v.used_count >= v.max_uses) return false
       return true
     })
@@ -92,10 +92,13 @@ export const useVoucherStore = defineStore('vouchers', () => {
 
     if (error || !data) throw new Error('Kode voucher tidak valid atau sudah tidak aktif.')
 
-    const now = new Date()
-    if (data.valid_from && new Date(data.valid_from) > now)
+    // Gunakan tanggal lokal (YYYY-MM-DD) agar tidak terpengaruh perbedaan timezone UTC vs WIB.
+    // new Date(dateString) dari kolom `date` diparse sebagai UTC midnight, yang bisa menyebabkan
+    // perbandingan salah di timezone +07:00 (WIB).
+    const todayStr = new Date().toLocaleDateString('en-CA') // format: YYYY-MM-DD
+    if (data.valid_from && data.valid_from > todayStr)
       throw new Error('Voucher belum berlaku.')
-    if (data.valid_until && new Date(data.valid_until) < now)
+    if (data.valid_until && data.valid_until < todayStr)
       throw new Error('Voucher sudah kedaluwarsa.')
     if (data.max_uses !== null && data.used_count >= data.max_uses)
       throw new Error('Voucher sudah mencapai batas penggunaan.')
