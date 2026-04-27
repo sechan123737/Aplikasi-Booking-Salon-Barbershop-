@@ -102,6 +102,27 @@
                 class="text-xs px-3 py-1.5 bg-red-50 text-red-500 rounded-full font-medium">
                 Batalkan
               </button>
+              <button v-if="b.status === 'cancelled' && b.payment_status === 'paid' && !b.refund_status"
+                @click="openRefundModal(b)"
+                class="text-xs px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full font-medium hover:bg-blue-100 transition-colors">
+                💸 Ajukan Refund
+              </button>
+              <span v-if="b.refund_status === 'requested'"
+                class="text-xs px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-full font-medium">
+                ⏳ Refund Diproses
+              </span>
+              <span v-if="b.refund_status === 'approved'"
+                class="text-xs px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full font-medium">
+                ✅ Refund Disetujui
+              </span>
+              <span v-if="b.refund_status === 'completed'"
+                class="text-xs px-3 py-1.5 bg-green-50 text-green-600 rounded-full font-medium">
+                💚 Refund Selesai
+              </span>
+              <span v-if="b.refund_status === 'rejected'"
+                class="text-xs px-3 py-1.5 bg-red-50 text-red-500 rounded-full font-medium">
+                ❌ Refund Ditolak
+              </span>
               <button v-if="b.status === 'cancelled'"
                 @click="openDeleteModal(b)"
                 class="text-xs px-3 py-1.5 bg-gray-100 text-gray-500 rounded-full font-medium hover:bg-red-50 hover:text-red-500 transition-colors">
@@ -133,6 +154,47 @@
           class="flex-1 py-3 rounded-2xl bg-red-500 hover:bg-red-600 font-semibold text-white transition-colors flex items-center justify-center gap-2">
           <span v-if="processing" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
           {{ processing ? '...' : 'Ya, Batalkan' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Refund -->
+  <div v-if="refundTarget" class="fixed inset-0 z-50 flex items-end sm:items-center pb-24 justify-center p-4 bg-black/40">
+    <div class="bg-white rounded-3xl w-full max-w-sm shadow-xl p-6">
+      <div class="text-center mb-4">
+        <div class="text-4xl mb-2">💸</div>
+        <p class="font-bold text-gray-900 text-lg">Ajukan Pengembalian Dana</p>
+        <p class="text-sm text-gray-500 mt-1">
+          Booking <span class="font-mono font-bold text-gray-700">{{ refundTarget.booking_code }}</span>
+        </p>
+        <p class="text-2xl font-bold text-amber-600 mt-2">
+          Rp {{ formatPrice(refundTarget.final_price ?? refundTarget.service_price ?? 0) }}
+        </p>
+      </div>
+      <div class="space-y-3 mb-5">
+        <div>
+          <label class="text-xs font-semibold text-gray-600 block mb-1">Info Rekening / E-Wallet *</label>
+          <input v-model="refundMethod" type="text"
+            placeholder="cth: BCA 1234567890 a/n Nama"
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-amber-500 outline-none" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-gray-600 block mb-1">Catatan (opsional)</label>
+          <textarea v-model="refundNotes" rows="2" placeholder="Alasan atau keterangan tambahan..."
+            class="w-full border-2 border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-amber-500 outline-none resize-none"></textarea>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button @click="refundTarget = null; refundMethod = ''; refundNotes = ''"
+          class="flex-1 py-3 rounded-2xl border-2 border-gray-200 font-semibold text-gray-600">
+          Batal
+        </button>
+        <button @click="doRefund" :disabled="processing || !refundMethod"
+          class="flex-1 py-3 rounded-2xl font-semibold text-white transition-colors flex items-center justify-center gap-2"
+          :class="refundMethod && !processing ? 'bg-blue-500 hover:bg-blue-600' : 'bg-gray-300'">
+          <span v-if="processing" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          {{ processing ? '...' : 'Ajukan Refund' }}
         </button>
       </div>
     </div>
@@ -170,6 +232,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useBookingStore } from '@/stores/booking'
 import StatusBadge from '@/components/public/StatusBadge.vue'
+import { supabase } from '@/lib/supabase'
 
 const authStore = useAuthStore()
 const bookingStore = useBookingStore()
@@ -190,6 +253,11 @@ const filteredBookings = computed(() => {
 
 const cancelTarget  = ref(null)
 const deleteTarget  = ref(null)
+const refundTarget  = ref(null)
+const refundMethod  = ref('')
+const refundNotes   = ref('')
+
+function openRefundModal(b) { refundTarget.value = b }
 const processing    = ref(false)
 
 function openCancelModal(b) { cancelTarget.value = b }
@@ -216,6 +284,38 @@ async function doDelete() {
     deleteTarget.value = null
   } catch (e) {
     alert(e.message || 'Gagal menghapus booking.')
+  } finally {
+    processing.value = false
+  }
+}
+
+async function doRefund() {
+  if (!refundTarget.value || !refundMethod.value) return
+  processing.value = true
+  try {
+    const { error } = await supabase
+      .from('bookings')
+      .update({
+        refund_status: 'requested',
+        refund_amount: refundTarget.value.final_price ?? refundTarget.value.service_price ?? 0,
+        refund_method: refundMethod.value,
+        refund_notes:  refundNotes.value || null,
+        updated_at:    new Date().toISOString(),
+      })
+      .eq('id', refundTarget.value.id)
+    if (error) throw error
+
+    // Update local state
+    const idx = bookingStore.bookings.findIndex(b => b.id === refundTarget.value.id)
+    if (idx !== -1) {
+      bookingStore.bookings[idx].refund_status = 'requested'
+      bookingStore.bookings[idx].refund_method = refundMethod.value
+    }
+    refundTarget.value = null
+    refundMethod.value = ''
+    refundNotes.value  = ''
+  } catch (e) {
+    alert(e.message || 'Gagal mengajukan refund.')
   } finally {
     processing.value = false
   }

@@ -164,6 +164,64 @@
         </div>
       </div>
 
+      <!-- Panel Refund (muncul jika ada permintaan refund) -->
+      <div v-if="booking.refund_status" class="bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-5">
+        <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-4">Permintaan Pengembalian Dana</h3>
+
+        <div class="space-y-2 mb-4">
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-400">Status Refund</span>
+            <span class="font-semibold" :class="{
+              'text-yellow-400': booking.refund_status === 'requested',
+              'text-blue-400':   booking.refund_status === 'approved',
+              'text-green-400':  booking.refund_status === 'completed',
+              'text-red-400':    booking.refund_status === 'rejected',
+            }">
+              {{ { requested: '⏳ Menunggu', approved: '✅ Disetujui', completed: '💚 Selesai', rejected: '❌ Ditolak' }[booking.refund_status] }}
+            </span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-400">Jumlah Refund</span>
+            <span class="text-white font-bold">Rp {{ formatPrice(booking.refund_amount) }}</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-400">Tujuan Transfer</span>
+            <span class="text-white text-right max-w-[60%]">{{ booking.refund_method }}</span>
+          </div>
+          <div v-if="booking.refund_notes" class="flex justify-between text-sm">
+            <span class="text-gray-400">Catatan</span>
+            <span class="text-gray-300 text-right max-w-[60%]">{{ booking.refund_notes }}</span>
+          </div>
+          <div v-if="booking.refund_at" class="flex justify-between text-sm">
+            <span class="text-gray-400">Diproses</span>
+            <span class="text-gray-300">{{ formatDateTime(booking.refund_at) }}</span>
+          </div>
+        </div>
+
+        <!-- Aksi admin untuk refund yang masih requested -->
+        <div v-if="booking.refund_status === 'requested'" class="flex gap-3 pt-4 border-t border-gray-700">
+          <button @click="processRefund('rejected')" :disabled="processingRefund"
+            class="flex-1 py-2.5 rounded-xl bg-red-500/20 text-red-400 text-sm font-semibold hover:bg-red-500/30 transition-colors">
+            ❌ Tolak
+          </button>
+          <button @click="processRefund('approved')" :disabled="processingRefund"
+            class="flex-1 py-2.5 rounded-xl bg-blue-500/20 text-blue-400 text-sm font-semibold hover:bg-blue-500/30 transition-colors">
+            ✅ Setujui
+          </button>
+          <button @click="processRefund('completed')" :disabled="processingRefund"
+            class="flex-1 py-2.5 rounded-xl bg-green-500/20 text-green-400 text-sm font-semibold hover:bg-green-500/30 transition-colors">
+            💚 Selesai
+          </button>
+        </div>
+        <!-- Aksi jika sudah approved, tandai selesai -->
+        <div v-else-if="booking.refund_status === 'approved'" class="pt-4 border-t border-gray-700">
+          <button @click="processRefund('completed')" :disabled="processingRefund"
+            class="w-full py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-sm font-semibold transition-colors">
+            💚 Tandai Dana Sudah Dikembalikan
+          </button>
+        </div>
+      </div>
+
       <!-- Update Status -->
       <div class="bg-gray-900 rounded-2xl border border-gray-800 p-5 mb-5">
         <h3 class="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-4">Ubah Status</h3>
@@ -294,6 +352,49 @@ function paymentStatusLabel(s) {
   if (s === 'unpaid' && booking.value?.payment_method === 'cod') return 'Bayar di Tempat 🤝'
   const map = { unpaid: 'Belum Bayar', waiting_verification: 'Menunggu Verifikasi', paid: 'Lunas ✅', failed: 'Ditolak ❌' }
   return map[s] || '-'
+}
+
+const processingRefund = ref(false)
+
+async function processRefund(status) {
+  processingRefund.value = true
+  try {
+    const updates = {
+      refund_status: status,
+      refund_at:     new Date().toISOString(),
+      updated_at:    new Date().toISOString(),
+    }
+    const { error } = await supabase
+      .from('bookings')
+      .update(updates)
+      .eq('id', booking.value.id)
+    if (error) throw error
+
+    booking.value.refund_status = status
+    booking.value.refund_at     = updates.refund_at
+
+    if (booking.value.user_id) {
+      const notifMap = {
+        approved:  { type: 'refund_approved',  title: '✅ Refund Disetujui',        message: `Permintaan refund booking #${booking.value.booking_code} disetujui. Dana akan segera ditransfer.` },
+        rejected:  { type: 'refund_rejected',  title: '❌ Refund Ditolak',          message: `Permintaan refund booking #${booking.value.booking_code} tidak dapat diproses. Hubungi salon untuk info lebih lanjut.` },
+        completed: { type: 'refund_completed', title: '💚 Dana Sudah Dikembalikan', message: `Dana refund booking #${booking.value.booking_code} telah berhasil ditransfer ke rekening kamu.` },
+      }
+      const notif = notifMap[status]
+      if (notif) {
+        await supabase.from('notifications').insert({
+          user_id:    booking.value.user_id,
+          booking_id: booking.value.id,
+          type:       notif.type,
+          title:      notif.title,
+          message:    notif.message,
+        })
+      }
+    }
+  } catch (e) {
+    alert(e.message || 'Gagal memproses refund.')
+  } finally {
+    processingRefund.value = false
+  }
 }
 
 async function handleMarkCodPaid() {
