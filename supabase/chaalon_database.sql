@@ -132,7 +132,7 @@ CREATE POLICY "Admins can manage staff" ON public.staff
     EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
--- Sample staff
+-- Sample staff Sechan
 INSERT INTO public.staff (name, specialization, bio) VALUES
   ('Sechan',  ARRAY['rambut', 'barbershop'],        'Stylist berpengalaman 5 tahun'),
   ('SechanKembar',  ARRAY['barbershop'],                  'Spesialis cukur pria & beard styling'),
