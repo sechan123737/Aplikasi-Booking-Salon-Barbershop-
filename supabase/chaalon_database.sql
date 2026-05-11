@@ -1,7 +1,8 @@
 -- ============================================================
 --  CHAALON SALON BOOKING — COMPLETE DATABASE SETUP
 --  Salin semua isi file ini ke Supabase SQL Editor → Run
---  Versi: All-in-one (schema + migrations + fixes)
+--  Versi: 2.0 (include semua fix: real-time slots, multi-layanan,
+--              total_duration, timezone WIB, overlap check)
 -- ============================================================
 
 
@@ -32,9 +33,11 @@ CREATE POLICY "Users can view own profile" ON public.profiles
 CREATE POLICY "Users can update own profile" ON public.profiles
   FOR UPDATE USING (auth.uid() = id);
 
+-- Fix: hindari infinite recursion dengan auth.jwt()
 CREATE POLICY "Admins can view all profiles" ON public.profiles
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    (auth.jwt() ->> 'role') = 'admin'
+    OR auth.uid() = id
   );
 
 -- View publik: hanya expose full_name & avatar_url (untuk nama reviewer)
@@ -58,6 +61,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
@@ -91,16 +95,16 @@ CREATE POLICY "Admins can manage services" ON public.services
 
 -- Sample services
 INSERT INTO public.services (name, description, price, duration_minutes, category) VALUES
-  ('Potong Rambut',  'Potong rambut reguler sesuai keinginan pelanggan',        35000,  30, 'rambut'),
-  ('Cuci Rambut',    'Keramas dengan shampo premium + kondisioner',              25000,  20, 'rambut'),
-  ('Creambath',      'Perawatan rambut dengan krim bergizi, termasuk pijat kepala', 75000, 60, 'rambut'),
-  ('Cat Rambut',     'Pewarnaan rambut dengan bahan berkualitas',               150000,  90, 'rambut'),
-  ('Smoothing',      'Pelurusan rambut semi-permanen',                          250000, 120, 'rambut'),
-  ('Facial',         'Perawatan wajah dasar: pembersihan + masker',              80000,  45, 'wajah'),
-  ('Cukur Jenggot',  'Penataan & cukur jenggot profesional',                    30000,  20, 'barbershop'),
-  ('Gunting Kumis',  'Penataan & rapikan kumis',                                 20000,  15, 'barbershop'),
-  ('Manicure',       'Perawatan kuku tangan',                                    45000,  30, 'kuku'),
-  ('Pedicure',       'Perawatan kuku kaki',                                      50000,  40, 'kuku');
+  ('Potong Rambut',  'Potong rambut reguler sesuai keinginan pelanggan',           35000,  30, 'rambut'),
+  ('Cuci Rambut',    'Keramas dengan shampo premium + kondisioner',                 25000,  20, 'rambut'),
+  ('Creambath',      'Perawatan rambut dengan krim bergizi, termasuk pijat kepala', 75000,  60, 'rambut'),
+  ('Cat Rambut',     'Pewarnaan rambut dengan bahan berkualitas',                  150000,  90, 'rambut'),
+  ('Smoothing',      'Pelurusan rambut semi-permanen',                             250000, 120, 'rambut'),
+  ('Facial',         'Perawatan wajah dasar: pembersihan + masker',                 80000,  45, 'wajah'),
+  ('Cukur Jenggot',  'Penataan & cukur jenggot profesional',                        30000,  20, 'barbershop'),
+  ('Gunting Kumis',  'Penataan & rapikan kumis',                                    20000,  15, 'barbershop'),
+  ('Manicure',       'Perawatan kuku tangan',                                       45000,  30, 'kuku'),
+  ('Pedicure',       'Perawatan kuku kaki',                                         50000,  40, 'kuku');
 
 
 -- ============================================================
@@ -130,10 +134,10 @@ CREATE POLICY "Admins can manage staff" ON public.staff
 
 -- Sample staff
 INSERT INTO public.staff (name, specialization, bio) VALUES
-  ('Andi',  ARRAY['rambut', 'barbershop'],        'Stylist berpengalaman 5 tahun'),
-  ('Budi',  ARRAY['barbershop'],                  'Spesialis cukur pria & beard styling'),
-  ('Citra', ARRAY['rambut', 'wajah', 'kuku'],     'Beauty therapist profesional'),
-  ('Dewi',  ARRAY['rambut', 'wajah'],             'Ahli perawatan rambut & facial');
+  ('Sechan',  ARRAY['rambut', 'barbershop'],        'Stylist berpengalaman 5 tahun'),
+  ('SechanKembar',  ARRAY['barbershop'],                  'Spesialis cukur pria & beard styling'),
+  ('SechanGanteng', ARRAY['rambut', 'wajah', 'kuku'],     'Beauty therapist profesional'),
+  ('SechanImut',  ARRAY['rambut', 'wajah'],             'Ahli perawatan rambut & facial');
 
 
 -- ============================================================
@@ -225,7 +229,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- ============================================================
--- 6. BOOKINGS (reservasi) — sudah include semua kolom migration
+-- 6. BOOKINGS (reservasi)
 -- ============================================================
 CREATE TABLE public.bookings (
   id               uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -242,6 +246,8 @@ CREATE TABLE public.bookings (
   booking_date     date NOT NULL,
   booking_time     time NOT NULL,
   end_time         time,
+  -- Durasi total (untuk multi-layanan, dipakai overlap check)
+  total_duration   int,
   -- Status booking
   status           text NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'confirmed', 'in_progress', 'completed', 'cancelled', 'no_show')),
@@ -274,7 +280,6 @@ CREATE TABLE public.bookings (
 
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies bookings
 CREATE POLICY "select_own_bookings" ON public.bookings
   FOR SELECT USING (
     auth.uid() = user_id
@@ -300,11 +305,11 @@ CREATE POLICY "Users can delete own cancelled bookings" ON public.bookings
     auth.uid() = user_id AND status = 'cancelled'
   );
 
-GRANT ALL   ON public.bookings TO authenticated;
+GRANT ALL    ON public.bookings TO authenticated;
 GRANT INSERT, SELECT ON public.bookings TO anon;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT USAGE  ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
 
--- Trigger: set end_time & service_price, jaga final_price tidak di-overwrite
+-- Trigger: set end_time & service_price
 CREATE OR REPLACE FUNCTION public.set_booking_defaults()
 RETURNS trigger AS $$
 DECLARE
@@ -315,17 +320,19 @@ BEGIN
     FROM public.services WHERE id = new.service_id;
 
     IF FOUND THEN
-      new.service_price = svc.price;
-      new.end_time = new.booking_time + (svc.duration_minutes || ' minutes')::interval;
+      new.service_price := svc.price;
+      -- end_time pakai total_duration jika multi-layanan, fallback ke durasi layanan tunggal
+      new.end_time := new.booking_time +
+        (COALESCE(new.total_duration, svc.duration_minutes) || ' minutes')::interval;
     END IF;
   END IF;
 
-  -- Isi final_price jika belum ada (booking tanpa voucher)
+  -- Isi final_price jika belum ada
   IF new.final_price IS NULL THEN
-    new.final_price = COALESCE(new.service_price, 0);
+    new.final_price := COALESCE(new.service_price, 0);
   END IF;
 
-  new.updated_at = now();
+  new.updated_at := now();
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -440,8 +447,8 @@ CREATE POLICY "Admins can manage blocked dates" ON public.blocked_dates
 -- ============================================================
 CREATE TABLE public.notifications (
   id         uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
-  user_id    uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
-  booking_id uuid REFERENCES public.bookings(id) ON DELETE CASCADE,
+  user_id    uuid REFERENCES public.profiles(id)  ON DELETE CASCADE,
+  booking_id uuid REFERENCES public.bookings(id)  ON DELETE CASCADE,
   type       text NOT NULL CHECK (type IN (
     'booking_confirmed', 'booking_reminder', 'booking_cancelled', 'booking_completed',
     'payment_rejected',
@@ -501,7 +508,7 @@ END $$;
 
 
 -- ============================================================
--- 12. VIEW: bookings_per_slot (untuk cek ketersediaan slot)
+-- 12. VIEW: bookings_per_slot
 -- ============================================================
 CREATE OR REPLACE VIEW public.bookings_per_slot
 WITH (security_invoker = false) AS
@@ -517,49 +524,132 @@ GRANT SELECT ON public.bookings_per_slot TO anon, authenticated;
 
 
 -- ============================================================
--- 13. FUNCTION: get_available_slots
+-- 13. FUNCTION: get_available_slots (v5 — FINAL)
+--     ✅ Timezone WIB (Asia/Jakarta)
+--     ✅ Memperhitungkan durasi layanan (jam mulai + durasi <= sekarang)
+--     ✅ Support multi-layanan via p_total_duration
+--     ✅ Overlap check per booking (bukan hanya cek jam persis sama)
+--     ✅ Per-staff conflict check
+--     ✅ Pakai total_duration dari kolom bookings jika ada
 -- ============================================================
+DROP FUNCTION IF EXISTS public.get_available_slots(date, uuid, uuid, int);
+DROP FUNCTION IF EXISTS public.get_available_slots(date, uuid, uuid, int, int);
+DROP FUNCTION IF EXISTS public.get_available_slots(date, uuid);
+DROP FUNCTION IF EXISTS public.get_available_slots(date, uuid, int);
+
 CREATE OR REPLACE FUNCTION public.get_available_slots(
-  p_date        date,
-  p_service_id  uuid,
-  p_max_per_slot int DEFAULT 20
+  p_date           date,
+  p_service_id     uuid,
+  p_staff_id       uuid  DEFAULT NULL,
+  p_max_per_slot   int   DEFAULT 20,
+  p_total_duration int   DEFAULT NULL  -- total durasi semua layanan (multi-layanan)
 )
-RETURNS TABLE(slot_time time, available_count int, is_available boolean) AS $$
+RETURNS TABLE(
+  slot_time       time,
+  available_count int,
+  is_available    boolean,
+  reason          text
+) AS $$
 DECLARE
   v_day_of_week      int;
   v_open_time        time;
   v_close_time       time;
   v_slot_duration    int;
   v_service_duration int;
+  v_effective_dur    int;
   v_current_slot     time;
   v_booked_count     int;
+  v_staff_booked     int;
+  v_now              time;
+  v_today            date;
+  v_buffer_min       int := 30;  -- buffer 30 menit dari sekarang
 BEGIN
-  v_day_of_week := EXTRACT(dow FROM p_date)::int;
+  -- Hari dalam minggu
+  v_day_of_week := EXTRACT(DOW FROM p_date)::int;
 
+  -- Jam operasional
   SELECT open_time, close_time, slot_duration_minutes
   INTO v_open_time, v_close_time, v_slot_duration
   FROM public.working_hours
   WHERE day_of_week = v_day_of_week AND is_open = true;
 
-  IF NOT FOUND THEN RETURN; END IF;
+  IF NOT FOUND THEN RETURN; END IF;  -- hari tutup
 
+  -- Tanggal libur
   IF EXISTS (SELECT 1 FROM public.blocked_dates WHERE blocked_date = p_date) THEN
     RETURN;
   END IF;
 
+  -- Durasi layanan utama (fallback)
   SELECT duration_minutes INTO v_service_duration
   FROM public.services WHERE id = p_service_id;
 
+  -- Efektif: pakai total_duration jika dikirim (multi-layanan)
+  v_effective_dur := COALESCE(p_total_duration, v_service_duration);
+
+  -- Waktu sekarang dalam WIB
+  v_now   := (NOW() AT TIME ZONE 'Asia/Jakarta')::time;
+  v_today := (NOW() AT TIME ZONE 'Asia/Jakarta')::date;
+
   v_current_slot := v_open_time;
 
-  WHILE v_current_slot + (v_service_duration || ' minutes')::interval <= v_close_time LOOP
-    SELECT COALESCE(booked_count, 0) INTO v_booked_count
-    FROM public.bookings_per_slot
-    WHERE booking_date = p_date AND booking_time = v_current_slot;
+  WHILE v_current_slot + (v_effective_dur || ' minutes')::interval <= v_close_time LOOP
+
+    -- Hitung booking yang overlap dengan slot ini (semua staff)
+    -- Overlap: booking_start < slot_end DAN booking_end > slot_start
+    SELECT COALESCE(COUNT(*), 0) INTO v_booked_count
+    FROM public.bookings b
+    JOIN public.services s ON s.id = b.service_id
+    WHERE b.booking_date = p_date
+      AND b.status NOT IN ('cancelled', 'no_show')
+      AND b.booking_time < (v_current_slot + (v_effective_dur || ' minutes')::interval)
+      AND (b.booking_time + (COALESCE(b.total_duration, s.duration_minutes) || ' minutes')::interval)
+          > v_current_slot;
+
+    -- Hitung konflik staff tertentu
+    v_staff_booked := 0;
+    IF p_staff_id IS NOT NULL THEN
+      SELECT COALESCE(COUNT(*), 0) INTO v_staff_booked
+      FROM public.bookings b
+      JOIN public.services s ON s.id = b.service_id
+      WHERE b.booking_date = p_date
+        AND b.staff_id = p_staff_id
+        AND b.status NOT IN ('cancelled', 'no_show')
+        AND b.booking_time < (v_current_slot + (v_effective_dur || ' minutes')::interval)
+        AND (b.booking_time + (COALESCE(b.total_duration, s.duration_minutes) || ' minutes')::interval)
+            > v_current_slot;
+    END IF;
 
     slot_time       := v_current_slot;
-    available_count := p_max_per_slot - COALESCE(v_booked_count, 0);
-    is_available    := available_count > 0 AND (v_current_slot > current_time OR p_date > current_date);
+    available_count := p_max_per_slot - v_booked_count;
+
+    -- Tentukan ketersediaan slot
+    IF p_date < v_today THEN
+      -- Tanggal sudah lewat
+      is_available := false;
+      reason       := 'Tanggal sudah lewat';
+
+    ELSIF p_date = v_today
+      AND (v_current_slot + (v_effective_dur || ' minutes')::interval)
+          <= (v_now + (v_buffer_min || ' minutes')::interval) THEN
+      -- Jam + durasi sudah lewat batas (sekarang + buffer)
+      is_available := false;
+      reason       := 'Waktu sudah lewat';
+
+    ELSIF v_booked_count >= p_max_per_slot THEN
+      -- Slot penuh
+      is_available := false;
+      reason       := 'Penuh';
+
+    ELSIF p_staff_id IS NOT NULL AND v_staff_booked > 0 THEN
+      -- Stylist sudah ada booking yang overlap
+      is_available := false;
+      reason       := 'Stylist tidak tersedia';
+
+    ELSE
+      is_available := true;
+      reason       := NULL;
+    END IF;
 
     RETURN NEXT;
 
@@ -571,7 +661,15 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
 -- SELESAI ✅
--- Verifikasi: jalankan query ini untuk cek tabel yang terbuat
--- ============================================================
+-- Cara verifikasi — jalankan query ini setelah import:
 -- SELECT table_name FROM information_schema.tables
 -- WHERE table_schema = 'public' ORDER BY table_name;
+--
+-- Harusnya ada: blocked_dates, booking_services, bookings,
+-- notifications, profiles, reviews, services, staff,
+-- vouchers, working_hours
+--
+-- Setelah import, ubah role akun admin:
+-- UPDATE public.profiles SET role = 'admin'
+-- WHERE id = (SELECT id FROM auth.users WHERE email = 'emailkamu@gmail.com');
+-- ============================================================

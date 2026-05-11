@@ -108,16 +108,21 @@
         <button v-for="slot in availableSlots" :key="slot.slot_time"
           :disabled="!slot.is_available"
           @click="form.booking_time = slot.slot_time"
-          class="py-2.5 px-1 rounded-xl text-xs font-semibold transition-all flex flex-col items-center gap-0.5"
+          class="h-12 rounded-xl text-xs font-semibold transition-all flex flex-col items-center justify-center gap-0.5 relative overflow-hidden"
           :class="form.booking_time === slot.slot_time
             ? 'bg-amber-500 text-white'
             : slot.is_available
               ? 'bg-white border-2 border-gray-200 text-gray-700 hover:border-amber-300'
-              : 'bg-gray-100 text-gray-300 cursor-not-allowed'">
-          <span>{{ slot.slot_time.slice(0,5) }}</span>
-          <span v-if="!slot.is_available" class="text-[10px] font-bold text-red-400">Penuh</span>
-          <span v-else-if="slot.available_count <= 5"
-            class="text-[10px]"
+              : slot.reason === 'Waktu sudah lewat' || slot.reason === 'Tanggal sudah lewat'
+                ? 'bg-gray-50 text-gray-200 cursor-not-allowed border border-gray-100'
+                : 'bg-gray-100 text-gray-300 cursor-not-allowed'">
+          <span class="font-semibold">{{ slot.slot_time.slice(0,5) }}</span>
+          <span v-if="!slot.is_available && slot.reason !== 'Waktu sudah lewat' && slot.reason !== 'Tanggal sudah lewat'"
+            class="text-[9px] font-bold text-red-400 leading-none">
+            {{ slot.reason === 'Stylist tidak tersedia' ? 'Stylist penuh' : 'Penuh' }}
+          </span>
+          <span v-else-if="slot.is_available && slot.available_count <= 3"
+            class="text-[9px] leading-none"
             :class="form.booking_time === slot.slot_time ? 'text-amber-100' : 'text-orange-400'">
             sisa {{ slot.available_count }}
           </span>
@@ -158,8 +163,34 @@
 
     <!-- Step 3: Data Pelanggan -->
     <div v-if="currentStep === 2">
-      <h2 class="font-semibold text-gray-800 mb-3">Data Pelanggan</h2>
-      <div class="space-y-4">
+      <h2 class="font-semibold text-gray-800 mb-1">Data Pelanggan</h2>
+
+      <!-- Sudah login: tampilkan data profil, readonly -->
+      <div v-if="authStore.isLoggedIn" class="mb-4">
+        <p class="text-xs text-gray-400 mb-3">Data diambil otomatis dari akun kamu</p>
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-3">
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500 font-medium">Nama</span>
+            <span class="font-semibold text-gray-800">{{ form.customer_name || '-' }}</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500 font-medium">No. HP</span>
+            <span class="font-semibold text-gray-800">{{ form.customer_phone || '-' }}</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500 font-medium">Email</span>
+            <span class="font-semibold text-gray-800">{{ form.customer_email || '-' }}</span>
+          </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">
+          Data salah?
+          <router-link to="/profile" class="text-amber-600 font-semibold underline">Edit di Profil</router-link>
+        </p>
+      </div>
+
+      <!-- Belum login: isi manual -->
+      <div v-else class="space-y-4 mb-4">
+        <p class="text-xs text-gray-400">Isi data diri kamu untuk melanjutkan booking</p>
         <div>
           <label class="text-sm font-medium text-gray-700 mb-1.5 block">Nama Lengkap *</label>
           <input v-model="form.customer_name" type="text" placeholder="Nama Anda"
@@ -175,11 +206,13 @@
           <input v-model="form.customer_email" type="email" placeholder="email@contoh.com"
             class="w-full border-2 border-gray-200 rounded-2xl p-3.5 focus:border-amber-500 outline-none" />
         </div>
-        <div>
-          <label class="text-sm font-medium text-gray-700 mb-1.5 block">Catatan</label>
-          <textarea v-model="form.notes" rows="3" placeholder="Ada catatan khusus? (opsional)"
-            class="w-full border-2 border-gray-200 rounded-2xl p-3.5 focus:border-amber-500 outline-none resize-none"></textarea>
-        </div>
+      </div>
+
+      <!-- Catatan: selalu bisa diedit -->
+      <div>
+        <label class="text-sm font-medium text-gray-700 mb-1.5 block">Catatan <span class="text-gray-400 font-normal">(opsional)</span></label>
+        <textarea v-model="form.notes" rows="3" placeholder="Ada catatan khusus? (opsional)"
+          class="w-full border-2 border-gray-200 rounded-2xl p-3.5 focus:border-amber-500 outline-none resize-none"></textarea>
       </div>
 
       <div class="flex gap-3 mt-6">
@@ -295,7 +328,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useServicesStore } from '@/stores/services'
@@ -403,7 +436,14 @@ async function loadSlots() {
   try {
     // Gunakan layanan pertama untuk kalkulasi slot (durasi terpanjang)
     const primaryId = form.value.service_ids[0]
-    availableSlots.value = await bookingStore.getAvailableSlots(form.value.booking_date, primaryId)
+    // Kirim total durasi semua layanan agar slot yang tidak cukup waktu ikut diblokir
+    const total = totalDuration.value || null
+    availableSlots.value = await bookingStore.getAvailableSlots(
+      form.value.booking_date,
+      primaryId,
+      form.value.staff_id,
+      total
+    )
   } catch (e) {
     console.error(e)
   } finally {
@@ -415,6 +455,22 @@ async function submitBooking() {
   submitting.value = true
   error.value = ''
   try {
+    // Re-validasi voucher sesaat sebelum submit, supaya tidak bisa lolos
+    // jika voucher sudah expired/habis setelah di-apply tapi sebelum submit
+    if (appliedVoucher.value) {
+      try {
+        const recheck = await voucherStore.validateVoucher(appliedVoucher.value.code, totalServicesPrice.value)
+        discountAmount.value = recheck.discountAmount
+      } catch (e) {
+        // Voucher sudah tidak valid (expired, habis, dll) — batalkan diskon
+        appliedVoucher.value = null
+        discountAmount.value = 0
+        error.value = `Voucher tidak dapat digunakan: ${e.message}`
+        submitting.value = false
+        return
+      }
+    }
+
     // Buat map harga per service
     const servicesPriceMap = {}
     selectedServices.value.forEach(s => { servicesPriceMap[s.id] = Number(s.price || 0) })
@@ -425,6 +481,7 @@ async function submitBooking() {
       service_ids:     form.value.service_ids,
       services_price:  servicesPriceMap,
       service_price:   totalServicesPrice.value,
+      total_duration:  totalDuration.value,  // total durasi semua layanan
       user_id:         authStore.user?.id || null,
       voucher_code:    appliedVoucher.value?.code || null,
       discount_amount: discountAmount.value || 0,
@@ -460,7 +517,27 @@ function getCategoryIcon(cat) {
 }
 
 onMounted(async () => {
+  // Wajib login untuk booking
+  if (!authStore.isLoggedIn) {
+    router.replace({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
   await Promise.all([servicesStore.fetchServices(), staffStore.fetchStaff()])
   if (form.value.service_ids.length > 0) currentStep.value = 0
 })
+
+// Reload slot saat staff berubah (real-time per-staff check)
+watch(() => form.value.staff_id, () => {
+  if (form.value.booking_date && form.value.service_ids.length > 0) {
+    loadSlots()
+  }
+})
+
+// Auto-fill data pelanggan dari profile jika belum terisi (profile bisa async)
+watch(() => authStore.profile, (profile) => {
+  if (!profile) return
+  if (!form.value.customer_name)  form.value.customer_name  = profile.full_name || ''
+  if (!form.value.customer_phone) form.value.customer_phone = profile.phone || ''
+  if (!form.value.customer_email) form.value.customer_email = authStore.user?.email || ''
+}, { immediate: true })
 </script>

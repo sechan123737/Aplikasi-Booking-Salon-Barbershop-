@@ -30,6 +30,11 @@ export const useBookingStore = defineStore('booking', () => {
     // service_id (kolom lama) tetap diisi dengan yang pertama
     bookingPayload.service_id = service_ids?.[0] || null
 
+    // Simpan total_duration dari semua layanan agar overlap check akurat
+    if (payload.total_duration) {
+      bookingPayload.total_duration = payload.total_duration
+    }
+
     const { data, error } = await supabase
       .from('bookings')
       .insert(bookingPayload)
@@ -66,13 +71,16 @@ export const useBookingStore = defineStore('booking', () => {
     return data
   }
 
-  async function getAvailableSlots(date, serviceId) {
-    const { data, error } = await supabase
-      .rpc('get_available_slots', {
-        p_date: date,
-        p_service_id: serviceId,
-        p_max_per_slot: 20
-      })
+  async function getAvailableSlots(date, serviceId, staffId = null, totalDuration = null) {
+    const params = {
+      p_date: date,
+      p_service_id: serviceId,
+      p_staff_id: staffId || null,
+      p_max_per_slot: 20,
+    }
+    // Kirim total durasi jika multi-layanan
+    if (totalDuration) params.p_total_duration = totalDuration
+    const { data, error } = await supabase.rpc('get_available_slots', params)
     if (error) throw error
     return data
   }
