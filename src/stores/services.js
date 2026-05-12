@@ -5,9 +5,22 @@ import { supabase } from '@/lib/supabase'
 
 export const useServicesStore = defineStore('services', () => {
   const services = ref([])
-  const loading = ref(false)
+  const loading  = ref(false)
+  const lastFetched = ref(null)
+  const CACHE_TTL = 5 * 60 * 1000 // 5 menit
 
-  async function fetchServices(onlyActive = true) {
+  async function fetchServices(onlyActive = true, force = false) {
+    // Gunakan cache jika data sudah ada dan belum expired
+    const now = Date.now()
+    if (
+      !force &&
+      services.value.length > 0 &&
+      lastFetched.value &&
+      (now - lastFetched.value) < CACHE_TTL
+    ) {
+      return services.value
+    }
+
     loading.value = true
     let query = supabase.from('services').select('*').order('category').order('name')
     if (onlyActive) query = query.eq('is_active', true)
@@ -15,6 +28,7 @@ export const useServicesStore = defineStore('services', () => {
     loading.value = false
     if (error) throw error
     services.value = data
+    lastFetched.value = Date.now()
     return data
   }
 
@@ -41,7 +55,8 @@ export const useServicesStore = defineStore('services', () => {
     const { error } = await supabase.from('services').delete().eq('id', id)
     if (error) throw error
     services.value = services.value.filter(s => s.id !== id)
+    lastFetched.value = null // reset cache setelah delete
   }
 
-  return { services, loading, fetchServices, createService, updateService, deleteService }
+  return { services, loading, lastFetched, fetchServices, createService, updateService, deleteService }
 })
