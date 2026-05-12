@@ -533,7 +533,7 @@ watch(() => form.value.staff_id, () => {
   }
 })
 
-// Auto-fill data pelanggan dari profile jika belum terisi (profile bisa async)
+
 watch(() => authStore.profile, (profile) => {
   if (!profile) return
   if (!form.value.customer_name)  form.value.customer_name  = profile.full_name || ''
