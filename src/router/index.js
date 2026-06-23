@@ -12,7 +12,8 @@ import ReviewView         from '../views/public/ReviewView.vue'
 import ProfileView        from '../views/public/ProfileView.vue'
 import NotificationsView  from '../views/public/NotificationsView.vue'
 import LoginView          from '../views/public/LoginView.vue'
-import RegisterView       from '../views/public/RegisterView.vue'
+import RegisterView          from '../views/public/RegisterView.vue'
+import ResetPasswordView    from '../views/public/ResetPasswordView.vue'
 
 // ── ADMIN VIEWS ────────────────────────────────────────────────
 import AdminLayout        from '../views/admin/AdminLayout.vue'
@@ -44,8 +45,9 @@ const routes = [
   },
 
   // ── AUTH ─────────────────────────────────────────────────────
-  { path: '/login',    name: 'login',    component: LoginView },
-  { path: '/register', name: 'register', component: RegisterView },
+  { path: '/login',          name: 'login',          component: LoginView },
+  { path: '/register',       name: 'register',       component: RegisterView },
+  { path: '/reset-password', name: 'reset-password', component: ResetPasswordView },
 
   // ── ADMIN ────────────────────────────────────────────────────
   {

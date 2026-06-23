@@ -99,6 +99,7 @@ const navItems = [
   { to: '/admin/reviews',   icon: '⭐', label: 'Ulasan' },
   { to: '/admin/schedule',  icon: '🕐', label: 'Jadwal Buka' },
   { to: '/admin/vouchers',   icon: '🎟️', label: 'Voucher' },
+  { to: '/admin/users',     icon: '🔑', label: 'Pengguna' },
 ]
 
 function isActive(to) {

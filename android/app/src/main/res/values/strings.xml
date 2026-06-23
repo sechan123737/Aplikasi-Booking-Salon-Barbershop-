@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ChaaLon</string>
+    <string name="title_activity_main">ChaaLon</string>
+    <string name="package_name">com.chaalon.app</string>
+    <string name="custom_url_scheme">com.chaalon.app</string>
+</resources>
