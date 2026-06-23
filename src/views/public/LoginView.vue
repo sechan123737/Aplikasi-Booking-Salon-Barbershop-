@@ -174,11 +174,12 @@ async function sendResetEmail() {
     const { error: err } = await supabase.auth.resetPasswordForEmail(
       forgotEmail.value.trim(),
       {
-        // URL yang akan dibuka setelah user klik link di email
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: import.meta.env.VITE_APP_URL
+          ? `${import.meta.env.VITE_APP_URL}/reset-password`
+          : `${window.location.origin}/reset-password`
       }
     )
-    if (err) throw err
+      if (err) throw err
     forgotSent.value = true
   } catch (e) {
     forgotError.value = 'Gagal mengirim email. Pastikan email sudah benar.'
