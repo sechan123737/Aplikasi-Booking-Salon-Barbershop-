@@ -446,6 +446,7 @@ async function loadSlots() {
     )
   } catch (e) {
     console.error(e)
+    error.value = 'Gagal memuat slot. Coba pilih tanggal lagi.'
   } finally {
     loadingSlots.value = false
   }

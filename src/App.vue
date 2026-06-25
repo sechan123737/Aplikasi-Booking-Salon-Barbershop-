@@ -23,14 +23,38 @@ import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useServicesStore } from '@/stores/services'
 import { useStaffStore } from '@/stores/staff'
+import { App as CapApp } from '@capacitor/app'
+import { useRouter } from 'vue-router'
+import { Capacitor } from '@capacitor/core'
 
 const authStore    = useAuthStore()
 const notifStore   = useNotificationsStore()
 const servicesStore = useServicesStore()
 const staffStore   = useStaffStore()
 const authReady    = ref(false)
+const router = useRouter()
 
 onMounted(async () => {
+  // ── Deep link handler ──────────────────────────────────────
+  if (Capacitor.isNativePlatform()) {
+    CapApp.addListener('appUrlOpen', async (event) => {
+      const url = event.url
+
+      // Setelah reset password di web → buka app ke halaman login
+      if (url.startsWith('chaalon://login')) {
+        router.push('/login?reset=true')
+        return
+      }
+
+      // Konfirmasi email → buka app ke halaman login
+      if (url.startsWith('chaalon://confirm')) {
+        router.push('/login?confirmed=true')
+        return
+      }
+    })
+  }
+
+  // ── Init app ───────────────────────────────────────────────
   try {
     // Jalankan auth + prefetch data secara paralel
     await Promise.all([

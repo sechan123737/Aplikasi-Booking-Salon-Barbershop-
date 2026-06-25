@@ -1,5 +1,8 @@
 {
   "appId": "com.chaalon.app",
   "appName": "ChaaLon",
-  "webDir": "dist"
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  }
 }

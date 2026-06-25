@@ -174,7 +174,15 @@ function startCountdown() {
     countdown.value--
     if (countdown.value <= 0) {
       clearInterval(timer)
-      router.push('/login')
+
+      // Buka app Android via Android Intent URL (hanya bekerja di Chrome Android)
+      const intentUrl = 'intent://login?reset=true#Intent;scheme=chaalon;package=com.chaalon.app;end'
+      window.location.href = intentUrl
+
+      // Fallback ke web /login setelah 2 detik jika app tidak terbuka
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
     }
   }, 1000)
 }

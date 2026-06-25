@@ -12,8 +12,9 @@ import ReviewView         from '../views/public/ReviewView.vue'
 import ProfileView        from '../views/public/ProfileView.vue'
 import NotificationsView  from '../views/public/NotificationsView.vue'
 import LoginView          from '../views/public/LoginView.vue'
-import RegisterView          from '../views/public/RegisterView.vue'
-import ResetPasswordView    from '../views/public/ResetPasswordView.vue'
+import RegisterView       from '../views/public/RegisterView.vue'
+import ResetPasswordView  from '../views/public/ResetPasswordView.vue'
+import AdminUsers         from '../views/admin/Adminusers.vue'
 
 // ── ADMIN VIEWS ────────────────────────────────────────────────
 import AdminLayout        from '../views/admin/AdminLayout.vue'
@@ -65,6 +66,7 @@ const routes = [
       { path: 'customers', name: 'admin-customers',        component: AdminCustomers },
       { path: 'schedule',  name: 'admin-schedule',         component: AdminSchedule },
       { path: 'vouchers',  name: 'admin-vouchers',         component: AdminVouchers },
+      { path: 'users',     name: 'admin-users',            component: AdminUsers },
     ]
   },
 

@@ -72,7 +72,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(email, password, fullName, phone) {
     const { data, error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { full_name: fullName, phone } }
+      options: {
+        data: { full_name: fullName, phone },
+        emailRedirectTo: `${window.location.origin}` // ← tambah ini saja
+      }
     })
     if (error) throw error
     return data

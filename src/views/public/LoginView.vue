@@ -10,6 +10,19 @@
 
     <!-- Form -->
     <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 max-w-sm mx-auto w-full">
+
+      <!-- Pesan sukses setelah reset password dari web -->
+      <div v-if="route.query.reset === 'true'" 
+        class="mb-4 bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700 text-center">
+        ✅ Password berhasil diubah! Silakan login.
+      </div>
+
+      <!-- Pesan sukses konfirmasi email -->
+      <div v-if="route.query.confirmed === 'true'"
+        class="mb-4 bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-700 text-center">
+        ✅ Email berhasil dikonfirmasi! Silakan login.
+      </div>
+
       <div class="space-y-4">
         <div>
           <label class="text-sm font-medium text-gray-700 block mb-1.5">Email</label>
@@ -120,6 +133,7 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { supabase } from '@/lib/supabase'
+import { Capacitor } from '@capacitor/core'
 
 const router = useRouter()
 const route = useRoute()
@@ -171,15 +185,13 @@ async function sendResetEmail() {
 
   forgotLoading.value = true
   try {
+    // Di Android app → link email tetap ke web untuk isi password baru
+    // Setelah simpan di web → web redirect ke chaalon://login → buka app
     const { error: err } = await supabase.auth.resetPasswordForEmail(
       forgotEmail.value.trim(),
-      {
-        redirectTo: import.meta.env.VITE_APP_URL
-          ? `${import.meta.env.VITE_APP_URL}/reset-password`
-          : `${window.location.origin}/reset-password`
-      }
+      { redirectTo: 'https://chaalon-booking.vercel.app/reset-password' }
     )
-      if (err) throw err
+    if (err) throw err
     forgotSent.value = true
   } catch (e) {
     forgotError.value = 'Gagal mengirim email. Pastikan email sudah benar.'

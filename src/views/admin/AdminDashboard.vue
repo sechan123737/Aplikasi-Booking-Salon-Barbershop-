@@ -107,11 +107,9 @@ const stats = computed(() => {
 
 onMounted(async () => {
   await Promise.all([
-    bookingStore.fetchAllBookings({ date: todayStr }),
+    bookingStore.fetchAllBookings(), // ← fetch semua sekalian untuk stats
     reviewsStore.fetchAllReviews(),
   ])
   loadingBookings.value = false
-  // Load all for stats
-  bookingStore.fetchAllBookings()
 })
 </script>
