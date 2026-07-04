@@ -22,12 +22,12 @@
         <div class="space-y-3">
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1.5">Nama Lengkap</label>
-            <input v-model="completeForm.full_name" type="text" placeholder="Nama lengkap kamu"
+            <input v-model="completeForm.full_name" type="text" placeholder="Nama lengkap anda"
               class="w-full border-2 border-gray-200 rounded-2xl p-3.5 focus:border-amber-500 outline-none" />
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 block mb-1.5">Nomor HP</label>
-            <input v-model="completeForm.phone" type="tel" placeholder="08xxxxxxxxxx"
+            <input v-model="completeForm.phone" type="tel" placeholder="Masukkan nomor telepon"
               class="w-full border-2 border-gray-200 rounded-2xl p-3.5 focus:border-amber-500 outline-none" />
           </div>
         </div>
