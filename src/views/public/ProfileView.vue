@@ -5,9 +5,28 @@
 
     <!-- Avatar -->
     <div class="flex flex-col items-center mb-8">
-      <div class="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center text-3xl font-bold text-amber-700 mb-3">
-        {{ authStore.profile?.full_name?.[0]?.toUpperCase() || 'U' }}
+      <div class="relative mb-3">
+        <div class="w-24 h-24 rounded-full overflow-hidden bg-amber-100 flex items-center justify-center">
+          <img v-if="authStore.profile?.avatar_url"
+            :src="authStore.profile.avatar_url"
+            class="w-full h-full object-cover"
+            alt="Foto profil" />
+          <span v-else class="text-3xl font-bold text-amber-700">
+            {{ authStore.profile?.full_name?.[0]?.toUpperCase() || 'U' }}
+          </span>
+        </div>
+        <button @click="triggerUpload"
+          class="absolute bottom-0 right-0 w-8 h-8 bg-amber-500 hover:bg-amber-600 rounded-full flex items-center justify-center shadow-md transition-colors">
+          <span class="text-white text-sm">📷</span>
+        </button>
+        <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handlePhotoUpload" />
       </div>
+
+      <div v-if="uploadingPhoto" class="flex items-center gap-2 text-sm text-amber-600 mb-1">
+        <span class="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
+        Mengunggah foto...
+      </div>
+
       <p class="font-bold text-gray-800 text-lg">{{ authStore.profile?.full_name }}</p>
       <p class="text-gray-400 text-sm">{{ authStore.user?.email }}</p>
       <span v-if="authStore.isAdmin" class="mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Admin</span>
@@ -52,7 +71,6 @@
       </div>
     </div>
 
-    <!-- Menu Items -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-50 mb-4">
       <router-link to="/history" class="flex items-center justify-between p-4">
         <div class="flex items-center gap-3">
@@ -87,23 +105,60 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { supabase } from '@/lib/supabase'
 
-const authStore = useAuthStore()
-const router = useRouter()
-const editMode = ref(false)
-const saving = ref(false)
-const form = ref({ full_name: '', phone: '' })
+const authStore      = useAuthStore()
+const router         = useRouter()
+const editMode       = ref(false)
+const saving         = ref(false)
+const form           = ref({ full_name: '', phone: '' })
+const fileInput      = ref(null)
+const uploadingPhoto = ref(false)
+
+function triggerUpload() {
+  fileInput.value?.click()
+}
+
+async function handlePhotoUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  if (file.size > 2 * 1024 * 1024) { alert('Ukuran foto maksimal 2MB.'); return }
+  if (!file.type.startsWith('image/')) { alert('File harus berupa gambar.'); return }
+
+  uploadingPhoto.value = true
+  try {
+    const userId = authStore.user.id
+    const ext    = file.name.split('.').pop()
+    const path   = `avatars/${userId}.${ext}`
+
+    const { error: uploadErr } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { upsert: true })
+    if (uploadErr) throw uploadErr
+
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+    const publicUrl = data.publicUrl + '?t=' + Date.now()
+
+    await authStore.updateProfile({ avatar_url: publicUrl })
+  } catch (e) {
+    console.error('Upload error:', e)
+    alert('Gagal mengunggah foto. Coba lagi.')
+  } finally {
+    uploadingPhoto.value = false
+    if (fileInput.value) fileInput.value.value = ''
+  }
+}
 
 function startEdit() {
   form.value.full_name = authStore.profile?.full_name || ''
-  form.value.phone = authStore.profile?.phone || ''
-  editMode.value = true
+  form.value.phone     = authStore.profile?.phone || ''
+  editMode.value       = true
 }
 
 async function saveProfile() {
   saving.value = true
   await authStore.updateProfile(form.value)
-  saving.value = false
+  saving.value  = false
   editMode.value = false
 }
 

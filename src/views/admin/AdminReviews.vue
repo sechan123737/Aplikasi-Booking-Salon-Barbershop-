@@ -35,8 +35,14 @@
         class="bg-gray-900 rounded-2xl border border-gray-800 p-5">
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold">
-              {{ r.profiles_public?.full_name?.[0]?.toUpperCase() || '?' }}
+            <div class="w-10 h-10 rounded-full overflow-hidden bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+              <img v-if="r.profiles_public?.avatar_url"
+                :src="r.profiles_public.avatar_url"
+                class="w-full h-full object-cover"
+                alt="foto profil" />
+              <span v-else class="text-amber-400 font-bold text-sm">
+                {{ r.profiles_public?.full_name?.[0]?.toUpperCase() || '?' }}
+              </span>
             </div>
             <div>
               <p class="text-white font-medium text-sm">{{ r.profiles_public?.full_name || 'Anonim' }}</p>

@@ -176,8 +176,13 @@
         <div v-for="review in recentReviews" :key="review.id" class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
-              <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-700">
-                {{ review.profiles_public?.full_name?.[0]?.toUpperCase() || '?' }}
+              <div class="w-8 h-8 rounded-full overflow-hidden bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <img v-if="review.profiles_public?.avatar_url"
+                  :src="review.profiles_public.avatar_url"
+                  class="w-full h-full object-cover" alt="foto" />
+                <span v-else class="text-sm font-bold text-amber-700">
+                  {{ review.profiles_public?.full_name?.[0]?.toUpperCase() || '?' }}
+                </span>
               </div>
               <div>
                 <p class="text-sm font-medium text-gray-800">{{ review.profiles_public?.full_name || 'Anonim' }}</p>
