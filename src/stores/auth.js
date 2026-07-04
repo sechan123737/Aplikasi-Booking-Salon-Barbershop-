@@ -8,7 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
   const profile = ref(null)
   const loading = ref(false)
 
-  const isAdmin   = computed(() => profile.value?.role === 'admin')
+  const isAdmin    = computed(() => profile.value?.role === 'admin')
   const isLoggedIn = computed(() => !!user.value)
 
   async function fetchProfile(userId) {
@@ -20,7 +20,6 @@ export const useAuthStore = defineStore('auth', () => {
         .single()
       if (!error && data) {
         profile.value = data
-        // Simpan ke localStorage agar router guard bisa cek tanpa async
         localStorage.setItem('salon_user', JSON.stringify({ id: data.id, role: data.role }))
         if (data.role === 'admin') {
           localStorage.setItem('salon_admin', 'true')
@@ -33,12 +32,37 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function ensureProfile(authUser) {
+    try {
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', authUser.id)
+        .single()
+
+      if (!existing) {
+        const meta = authUser.user_metadata || {}
+        await supabase.from('profiles').insert({
+          id:         authUser.id,
+          full_name:  meta.full_name || meta.name || authUser.email?.split('@')[0] || 'Pengguna',
+          email:      authUser.email,
+          phone:      meta.phone || '',
+          avatar_url: meta.avatar_url || meta.picture || null,
+          role:       'customer'
+        })
+      }
+    } catch (e) {
+      console.error('ensureProfile error:', e)
+    }
+  }
+
   async function init() {
     loading.value = true
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         user.value = session.user
+        await ensureProfile(session.user)
         await fetchProfile(session.user.id)
       }
     } catch (e) {
@@ -47,9 +71,13 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = false
     }
 
+    // ← Hanya SATU onAuthStateChange
     supabase.auth.onAuthStateChange(async (event, session) => {
       user.value = session?.user ?? null
       if (session?.user) {
+        if (event === 'SIGNED_IN') {
+          await ensureProfile(session.user)
+        }
         await fetchProfile(session.user.id)
       } else {
         profile.value = null
@@ -69,12 +97,20 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function loginWithGoogle(redirectTo = window.location.origin + '/') {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo }
+    })
+    if (error) throw error
+  }
+
   async function register(email, password, fullName, phone) {
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: {
         data: { full_name: fullName, phone },
-        emailRedirectTo: `${window.location.origin}` // ← tambah ini saja
+        emailRedirectTo: `${window.location.origin}`
       }
     })
     if (error) throw error
@@ -104,6 +140,6 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user, profile, loading,
     isAdmin, isLoggedIn,
-    init, login, register, logout, updateProfile
+    init, login, loginWithGoogle, register, logout, updateProfile
   }
 })
