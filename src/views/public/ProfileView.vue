@@ -45,21 +45,19 @@
           class="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
           @click="showLightbox = false">
 
-          <!-- Foto besar -->
           <div class="relative flex items-center justify-center p-4" @click.stop>
+            <!-- Ganti URL Google photo dari s96-c ke s400-c agar lebih besar -->
             <img
-              :src="authStore.profile.avatar_url"
-              class="max-w-[90vw] max-h-[80vh] rounded-2xl object-contain shadow-2xl"
+              :src="getFullSizePhoto(authStore.profile.avatar_url)"
+              class="w-72 h-72 rounded-2xl object-cover shadow-2xl"
               alt="Foto profil" />
 
-            <!-- Tombol tutup -->
             <button
               @click="showLightbox = false"
-              class="absolute top-2 right-2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white text-lg transition-colors">
+              class="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-800 text-sm font-bold shadow-lg">
               ✕
             </button>
           </div>
-
           <!-- Tap area luar untuk tutup -->
           <div class="absolute inset-0 -z-10" @click="showLightbox = false"></div>
         </div>
@@ -152,6 +150,13 @@ const showLightbox = ref(false)
 
 function triggerUpload() {
   fileInput.value?.click()
+}
+
+// Ganti ukuran foto Google dari s96 ke s400 agar lebih besar di lightbox
+function getFullSizePhoto(url) {
+  if (!url) return ''
+  // Google photo URL biasanya berakhiran =s96-c, ganti ke =s400-c
+  return url.replace(/=s\d+-c/, '=s400-c').replace(/\?t=\d+/, '')
 }
 
 async function handlePhotoUpload(event) {

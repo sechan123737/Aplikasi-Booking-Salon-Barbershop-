@@ -73,8 +73,15 @@
               {{ notifStore.unreadCount > 9 ? '9+' : notifStore.unreadCount }}
             </span>
           </router-link>
-          <router-link v-if="authStore.isLoggedIn" to="/profile" class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm font-semibold text-amber-700">
-            {{ authStore.profile?.full_name?.[0]?.toUpperCase() || 'U' }}
+          <router-link v-if="authStore.isLoggedIn" to="/profile" 
+            class="w-8 h-8 rounded-full overflow-hidden bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <img v-if="authStore.profile?.avatar_url"
+              :src="authStore.profile.avatar_url"
+              class="w-full h-full object-cover"
+              alt="foto" />
+            <span v-else class="text-sm font-semibold text-amber-700">
+              {{ authStore.profile?.full_name?.[0]?.toUpperCase() || 'U' }}
+            </span>
           </router-link>
           <router-link v-else to="/login" class="text-sm font-medium text-amber-600 border border-amber-300 rounded-full px-3 py-1">
             Masuk
