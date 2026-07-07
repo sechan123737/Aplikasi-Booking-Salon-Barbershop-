@@ -33,8 +33,14 @@
       <!-- Desktop User Info -->
       <div class="px-4 py-4 border-t border-gray-100">
         <div v-if="authStore.isLoggedIn" class="flex items-center gap-3 px-3 py-3 rounded-2xl bg-amber-50">
-          <div class="w-9 h-9 rounded-full bg-amber-400 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
-            {{ authStore.profile?.full_name?.[0]?.toUpperCase() || 'U' }}
+          <div class="w-8 h-8 rounded-full overflow-hidden bg-amber-500 flex items-center justify-center flex-shrink-0">
+            <img v-if="authStore.profile?.avatar_url"
+              :src="authStore.profile.avatar_url"
+              class="w-full h-full object-cover"
+              alt="foto" />
+            <span v-else class="text-white font-bold text-sm">
+              {{ authStore.profile?.full_name?.[0]?.toUpperCase() || 'U' }}
+            </span>
           </div>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-gray-800 truncate">{{ authStore.profile?.full_name || 'Pengguna' }}</p>
