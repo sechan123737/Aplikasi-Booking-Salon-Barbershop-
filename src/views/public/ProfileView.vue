@@ -6,7 +6,10 @@
     <!-- Avatar -->
     <div class="flex flex-col items-center mb-8">
       <div class="relative mb-3">
-        <div class="w-24 h-24 rounded-full overflow-hidden bg-amber-100 flex items-center justify-center">
+        <!-- Foto profil — klik untuk perbesar -->
+        <div 
+          class="w-24 h-24 rounded-full overflow-hidden bg-amber-100 flex items-center justify-center cursor-pointer"
+          @click="authStore.profile?.avatar_url && (showLightbox = true)">
           <img v-if="authStore.profile?.avatar_url"
             :src="authStore.profile.avatar_url"
             class="w-full h-full object-cover"
@@ -15,6 +18,8 @@
             {{ authStore.profile?.full_name?.[0]?.toUpperCase() || 'U' }}
           </span>
         </div>
+
+        <!-- Tombol ganti foto -->
         <button @click="triggerUpload"
           class="absolute bottom-0 right-0 w-8 h-8 bg-amber-500 hover:bg-amber-600 rounded-full flex items-center justify-center shadow-md transition-colors">
           <span class="text-white text-sm">📷</span>
@@ -22,6 +27,7 @@
         <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handlePhotoUpload" />
       </div>
 
+      <!-- Loading upload -->
       <div v-if="uploadingPhoto" class="flex items-center gap-2 text-sm text-amber-600 mb-1">
         <span class="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></span>
         Mengunggah foto...
@@ -31,6 +37,34 @@
       <p class="text-gray-400 text-sm">{{ authStore.user?.email }}</p>
       <span v-if="authStore.isAdmin" class="mt-2 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Admin</span>
     </div>
+
+    <!-- Lightbox foto profil -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div v-if="showLightbox"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          @click="showLightbox = false">
+
+          <!-- Foto besar -->
+          <div class="relative flex items-center justify-center p-4" @click.stop>
+            <img
+              :src="authStore.profile.avatar_url"
+              class="max-w-[90vw] max-h-[80vh] rounded-2xl object-contain shadow-2xl"
+              alt="Foto profil" />
+
+            <!-- Tombol tutup -->
+            <button
+              @click="showLightbox = false"
+              class="absolute top-2 right-2 w-9 h-9 bg-black/50 hover:bg-black/70 rounded-full flex items-center justify-center text-white text-lg transition-colors">
+              ✕
+            </button>
+          </div>
+
+          <!-- Tap area luar untuk tutup -->
+          <div class="absolute inset-0 -z-10" @click="showLightbox = false"></div>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- Edit Form -->
     <div v-if="editMode" class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
@@ -114,6 +148,7 @@ const saving         = ref(false)
 const form           = ref({ full_name: '', phone: '' })
 const fileInput      = ref(null)
 const uploadingPhoto = ref(false)
+const showLightbox = ref(false)
 
 function triggerUpload() {
   fileInput.value?.click()
@@ -167,3 +202,14 @@ async function logout() {
   router.push('/')
 }
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
